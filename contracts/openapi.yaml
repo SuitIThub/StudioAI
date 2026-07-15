@@ -1,0 +1,162 @@
+openapi: 3.1.0
+info:
+  title: StudioAI Worker API
+  version: "0.1.0"
+  description: |
+    Stage 1 – Model infrastructure.
+    OpenAPI is the DTO source of truth (Decision B). x-contract-version must match Worker.
+  x-contract-version: "0.1.0"
+servers:
+  - url: http://127.0.0.1:7850
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /models:
+    get:
+      operationId: listModels
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelListResponse"
+  /models/{model_id}/load:
+    post:
+      operationId: loadModel
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Loaded
+        "409":
+          description: max_loaded capacity
+  /models/{model_id}/unload:
+    post:
+      operationId: unloadModel
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Unloaded
+  /models/swap:
+    post:
+      operationId: swapModels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwapRequest"
+      responses:
+        "200":
+          description: Swapped
+  /v1/completions:
+    post:
+      operationId: createCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompletionRequest"
+      responses:
+        "200":
+          description: OK
+  /v1/chat/completions:
+    post:
+      operationId: createChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+      responses:
+        "200":
+          description: OK
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, contract_version, loaded_models, backend]
+      properties:
+        status: { type: string }
+        contract_version: { type: string }
+        backend: { type: string }
+        loaded_models:
+          type: array
+          items: { type: string }
+        detail: { type: string, nullable: true }
+    ModelInfo:
+      type: object
+      required: [id, name, roles, backend, loaded, vram_mb]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        backend: { type: string }
+        loaded: { type: boolean }
+        vram_mb: { type: integer }
+        path: { type: string, nullable: true }
+    ModelListResponse:
+      type: object
+      required: [models, max_loaded]
+      properties:
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelInfo"
+        max_loaded: { type: integer }
+    SwapRequest:
+      type: object
+      required: [unload_id, load_id]
+      properties:
+        unload_id: { type: string }
+        load_id: { type: string }
+    CompletionRequest:
+      type: object
+      required: [prompt]
+      properties:
+        model: { type: string, nullable: true }
+        prompt: { type: string }
+        max_tokens: { type: integer, default: 256 }
+        temperature: { type: number, default: 0.2 }
+        grammar: { type: string, nullable: true }
+        grammar_file: { type: string, nullable: true }
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string }
+        content: { type: string }
+    ChatCompletionRequest:
+      type: object
+      required: [messages]
+      properties:
+        model: { type: string, nullable: true }
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        max_tokens: { type: integer, default: 512 }
+        temperature: { type: number, default: 0.7 }
+        grammar: { type: string, nullable: true }
+        grammar_file: { type: string, nullable: true }

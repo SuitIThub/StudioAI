@@ -1,0 +1,30 @@
+# Model catalog – Stage 1 placeholders.
+# Replace `path` with real GGUF files on the home server before load/chat tests.
+
+models:
+  - id: qwen-technical
+    name: "Qwen Technical (structured / GBNF)"
+    roles: [index_merge, structured_json]
+    backend: llamacpp
+    path: "/CHANGE_ME/models/qwen-technical.gguf"
+    vram_mb: 4000
+    context_length: 8192
+    notes: "Ubuntu placeholder – set absolute path to your Qwen GGUF (Q4 for 6GB)."
+
+  - id: stheno-8b
+    name: "Stheno 8B Q4"
+    roles: [agent_chat, scene_feedback_polish]
+    backend: llamacpp
+    path: "/CHANGE_ME/models/stheno-8b-q4.gguf"
+    vram_mb: 5200
+    context_length: 8192
+    notes: "Ubuntu placeholder – RP/chat default."
+
+  - id: satyr
+    name: "Satyr Q4"
+    roles: [agent_chat]
+    backend: llamacpp
+    path: "/CHANGE_ME/models/satyr-q4.gguf"
+    vram_mb: 5000
+    context_length: 8192
+    notes: "Ubuntu placeholder – alternate chat persona."

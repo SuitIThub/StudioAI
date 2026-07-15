@@ -1,0 +1,23 @@
+# StudioAI Home-Server Worker (Stage 1)
+# Copy to .env / edit paths, then: studio-ai-worker
+
+worker:
+  host: "0.0.0.0"
+  port: 7850
+  # Optional shared secret. If set, send Authorization: Bearer <token>
+  token: ""
+
+model_manager:
+  max_loaded_models: 1          # 6 GB VRAM: keep one model resident
+  preferred_backend: llamacpp
+  registry_path: "registry.yaml"
+  grammars_dir: "grammars"
+
+llamacpp:
+  # Ubuntu: absolute path to your build, e.g. "/home/you/llama.cpp/build/bin/llama-server"
+  # Or leave "llama-server" if that binary is on PATH.
+  bin: "llama-server"
+  host: "127.0.0.1"
+  base_port: 8080
+  ctx_size: 4096
+  n_gpu_layers: 99
