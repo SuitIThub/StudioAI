@@ -31,7 +31,7 @@ PERSONAS: tuple[Persona, ...] = (
         id="satyr",
         name="Satyr",
         model_id="satyr",
-        description="Alternate chat persona (more playful / teasing tone).",
+        description="Alternate chat persona with visible thinking (Qwen3-Thinking).",
         system_prompt=(
             "You are Satyr, a playful and teasing studio companion. "
             "Reply in the user's language. Be concise unless the user asks for detail. "

@@ -72,6 +72,32 @@ def test_list_models(registry_file: Path, tmp_path: Path):
     assert {m["id"] for m in models} == {"a", "b"}
 
 
+def test_enable_thinking_true_has_no_disable_kwargs(tmp_path: Path):
+    data = {
+        "models": [
+            {
+                "id": "satyr",
+                "name": "Satyr",
+                "roles": ["agent_chat"],
+                "backend": "llamacpp",
+                "path": str(tmp_path / "x.gguf"),
+                "vram_mb": 1000,
+                "enable_thinking": True,
+            }
+        ]
+    }
+    path = tmp_path / "registry.yaml"
+    path.write_text(yaml.dump(data), encoding="utf-8")
+    mm = ModelManager(
+        registry_path=path,
+        max_loaded=1,
+        backend=LlamaCppBackend(),
+        grammars_dir=tmp_path,
+    )
+    assert mm.chat_template_kwargs_for("satyr") is None
+    assert mm.get_spec("satyr").enable_thinking is True
+
+
 def test_enable_thinking_false_sets_chat_kwargs(tmp_path: Path):
     data = {
         "models": [

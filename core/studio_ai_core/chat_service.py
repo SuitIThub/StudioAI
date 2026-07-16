@@ -14,9 +14,32 @@ from studio_ai_core.routing import (
     resolve_chat_target,
     resolve_structured_target,
 )
+from studio_ai_core.text_normalize import split_thinking
 from studio_ai_core.worker_client import WorkerApiError, WorkerClient, WorkerOfflineError
 
 logger = logging.getLogger(__name__)
+
+_CLOSE_HINT = "/" + "think"
+_OPEN_HINT = "<" + "think"
+_OPEN_HINT_ALT = "<redacted_thinking"
+
+
+def _normalize_assistant_message(
+    message: dict[str, Any] | None, *, reasoning: str | None = None
+) -> dict[str, Any]:
+    msg = dict(message or {"role": "assistant", "content": ""})
+    content = msg.get("content") or ""
+    existing_reasoning = reasoning or msg.get("reasoning_content") or ""
+    leaked_reasoning, answer = split_thinking(content)
+    if leaked_reasoning:
+        if existing_reasoning:
+            existing_reasoning = (existing_reasoning.rstrip() + "\n\n" + leaked_reasoning).strip()
+        else:
+            existing_reasoning = leaked_reasoning
+        msg["content"] = answer
+    if existing_reasoning:
+        msg["reasoning_content"] = existing_reasoning
+    return msg
 
 
 class ChatService:
@@ -64,7 +87,7 @@ class ChatService:
         messages: list[dict[str, str]],
         persona: str | None = None,
         model: str | None = None,
-        max_tokens: int = 512,
+        max_tokens: int = 2048,
         temperature: float = 0.7,
         stream: bool = False,
     ) -> dict[str, Any] | AsyncIterator[str]:
@@ -95,12 +118,16 @@ class ChatService:
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        message = _normalize_assistant_message(
+            result.get("message"),
+            reasoning=result.get("reasoning_content"),
+        )
         return {
             "ok": True,
             "role": "agent_chat",
             "persona": persona_id,
             "model": result.get("model", model_id),
-            "message": result.get("message"),
+            "message": message,
             "finish_reason": result.get("finish_reason"),
         }
 
@@ -113,14 +140,18 @@ class ChatService:
         max_tokens: int,
         temperature: float,
     ) -> AsyncIterator[str]:
-        # First event: metadata so UI knows which model answered
         meta = {
             "type": "meta",
             "role": "agent_chat",
             "persona": persona_id,
             "model": model_id,
+            "thinking": True,
         }
         yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
+
+        content_buf = ""
+        emitted_answer_len = 0
+        tag_mode = False
 
         async for line in self.worker.chat_stream(
             model=model_id,
@@ -130,11 +161,86 @@ class ChatService:
         ):
             if not line:
                 continue
-            # Pass through OpenAI-style SSE from llama.cpp
-            if line.startswith("data:"):
-                yield f"{line}\n\n"
-            else:
-                yield f"data: {line}\n\n"
+            raw = line[5:].strip() if line.startswith("data:") else line.strip()
+            if raw == "[DONE]":
+                if tag_mode:
+                    _reasoning, answer = split_thinking(content_buf)
+                    if len(answer) > emitted_answer_len:
+                        piece = answer[emitted_answer_len:]
+                        chunk = {"choices": [{"delta": {"content": piece}, "index": 0}]}
+                        yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                continue
+
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                yield f"data: {raw}\n\n"
+                continue
+
+            if obj.get("type") in ("meta", "error"):
+                yield f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+                continue
+
+            choices = obj.get("choices") or []
+            if not choices:
+                yield f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+                continue
+
+            delta = dict(choices[0].get("delta") or {})
+            reason_piece = delta.get("reasoning_content") or delta.get("reasoning") or ""
+            content_piece = delta.get("content") or ""
+
+            out_delta: dict[str, Any] = {}
+            if reason_piece:
+                out_delta["reasoning_content"] = reason_piece
+
+            if content_piece:
+                content_buf += content_piece
+                lower = content_buf.lower()
+                if (not tag_mode) and (
+                    _OPEN_HINT in lower or _OPEN_HINT_ALT in lower or _CLOSE_HINT in lower
+                ):
+                    tag_mode = True
+
+                if tag_mode:
+                    if _CLOSE_HINT in lower or "</redacted_thinking" in lower:
+                        reasoning, answer = split_thinking(content_buf)
+                        if (
+                            reasoning
+                            and emitted_answer_len == 0
+                            and "reasoning_content" not in out_delta
+                        ):
+                            out_delta["reasoning_content"] = reasoning
+                        if len(answer) > emitted_answer_len:
+                            out_delta["content"] = answer[emitted_answer_len:]
+                            emitted_answer_len = len(answer)
+                    # else: still inside leaked think block — wait
+                else:
+                    out_delta["content"] = content_piece
+                    emitted_answer_len = len(content_buf)
+
+            if out_delta:
+                chunk: dict[str, Any] = {
+                    "choices": [
+                        {
+                            "delta": out_delta,
+                            "index": 0,
+                            "finish_reason": choices[0].get("finish_reason"),
+                        }
+                    ]
+                }
+                for key in ("id", "model", "object", "created"):
+                    if key in obj:
+                        chunk[key] = obj[key]
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+
+        if tag_mode:
+            _reasoning, answer = split_thinking(content_buf)
+            if len(answer) > emitted_answer_len:
+                piece = answer[emitted_answer_len:]
+                chunk = {"choices": [{"delta": {"content": piece}, "index": 0}]}
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
     async def structured(
         self,

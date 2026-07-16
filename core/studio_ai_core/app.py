@@ -38,7 +38,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     persona: str | None = None
     model: str | None = None
-    max_tokens: int = 1024
+    max_tokens: int = 2048
     temperature: float = 0.7
     stream: bool = True
 

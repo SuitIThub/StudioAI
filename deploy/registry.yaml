@@ -24,6 +24,7 @@ models:
     path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q8_0.gguf"
     vram_mb: 5000
     context_length: 8192
-    # Qwen3-Thinking base: without this, short chats return empty content
-    enable_thinking: false
-    notes: "Satyr (Qwen3-Thinking) – thinking disabled for chat"
+    # Qwen3-Thinking: keep reasoning on; Core/UI separate it from the answer.
+    # Needs enough max_tokens (Core default 2048) so the answer is not cut off.
+    enable_thinking: true
+    notes: "Satyr (Qwen3-Thinking) – thinking enabled"

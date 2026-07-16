@@ -29,11 +29,40 @@
       div.appendChild(m);
     }
     const body = document.createElement("span");
+    body.className = "answer";
     body.textContent = content;
     div.appendChild(body);
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return body;
+  }
+
+  function addAssistantShell(meta) {
+    const div = document.createElement("div");
+    div.className = "bubble assistant";
+    const metaEl = document.createElement("span");
+    metaEl.className = "meta";
+    metaEl.textContent = meta || "";
+    div.appendChild(metaEl);
+
+    const think = document.createElement("details");
+    think.className = "thinking";
+    think.hidden = true;
+    const summary = document.createElement("summary");
+    summary.textContent = "Thinking";
+    const thinkBody = document.createElement("pre");
+    thinkBody.className = "think-body";
+    think.appendChild(summary);
+    think.appendChild(thinkBody);
+    div.appendChild(think);
+
+    const answer = document.createElement("span");
+    answer.className = "answer";
+    div.appendChild(answer);
+
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return { root: div, metaEl, think, thinkBody, answer };
   }
 
   async function refreshHealth() {
@@ -121,11 +150,7 @@
     addBubble("user", text);
     history.push({ role: "user", content: text });
 
-    const assistantBody = addBubble(
-      "assistant",
-      "",
-      personaEl.value + " …"
-    );
+    const shell = addAssistantShell(personaEl.value + " …");
     sendBtn.disabled = true;
 
     try {
@@ -136,13 +161,13 @@
           messages: history,
           persona: personaEl.value,
           stream: true,
-          max_tokens: 1024,
+          max_tokens: 2048,
         }),
       });
 
       if (res.status === 503) {
         const err = await res.json();
-        assistantBody.textContent =
+        shell.answer.textContent =
           "Worker offline: " +
           ((err.detail && err.detail.message) || JSON.stringify(err));
         history.pop();
@@ -152,7 +177,7 @@
 
       if (!res.ok || !res.body) {
         const errText = await res.text();
-        assistantBody.textContent = "Fehler: " + errText;
+        shell.answer.textContent = "Fehler: " + errText;
         history.pop();
         return;
       }
@@ -161,8 +186,7 @@
       const decoder = new TextDecoder();
       let buffer = "";
       let full = "";
-      let sawReasoning = false;
-      let modelMeta = personaEl.value;
+      let reasoning = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -183,33 +207,34 @@
               continue;
             }
             if (obj.type === "error") {
-              assistantBody.textContent =
+              shell.answer.textContent =
                 "Fehler [" + (obj.code || "?") + "]: " + (obj.message || "");
               full = "";
               if (obj.code === "worker_offline") setStatus("Worker OFFLINE", "bad");
               continue;
             }
             if (obj.type === "meta") {
-              modelMeta = (obj.persona || "") + " · " + (obj.model || "");
-              const metaEl = assistantBody.parentElement.querySelector(".meta");
-              if (metaEl) metaEl.textContent = modelMeta;
+              shell.metaEl.textContent =
+                (obj.persona || "") + " · " + (obj.model || "");
               continue;
             }
             const choices = obj.choices || [];
-            if (choices.length) {
-              const delta = choices[0].delta || {};
-              if (delta.reasoning_content || delta.reasoning) {
-                sawReasoning = true;
-                if (!full) {
-                  assistantBody.textContent = "…denkt…";
-                }
-              }
-              const piece = delta.content || "";
-              if (piece) {
-                full += piece;
-                assistantBody.textContent = full;
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-              }
+            if (!choices.length) continue;
+            const delta = choices[0].delta || {};
+            const reasonPiece = delta.reasoning_content || delta.reasoning || "";
+            if (reasonPiece) {
+              reasoning += reasonPiece;
+              shell.think.hidden = false;
+              shell.thinkBody.textContent = reasoning;
+              if (!shell.think.open && !full) shell.think.open = true;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            const piece = delta.content || "";
+            if (piece) {
+              full += piece;
+              shell.answer.textContent = full;
+              if (shell.think.open && full) shell.think.open = false;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
             }
           }
         }
@@ -217,15 +242,17 @@
 
       if (full) {
         history.push({ role: "assistant", content: full });
-      } else if (!assistantBody.textContent || assistantBody.textContent === "…denkt…") {
-        assistantBody.textContent = sawReasoning
-          ? "(leere Antwort – Modell steckt im Thinking; Satyr neu laden mit enable_thinking: false)"
-          : "(leere Antwort)";
+      } else if (reasoning) {
+        shell.answer.textContent =
+          "(noch keine Antwort – Thinking hat das Token-Budget verbraucht; erneut versuchen oder kürzer fragen)";
+        history.pop();
+      } else {
+        shell.answer.textContent = "(leere Antwort)";
         history.pop();
       }
       await refreshHealth();
     } catch (err) {
-      assistantBody.textContent = "Request fehlgeschlagen: " + err;
+      shell.answer.textContent = "Request fehlgeschlagen: " + err;
       history.pop();
     } finally {
       sendBtn.disabled = false;

@@ -183,6 +183,35 @@ select {
   margin-bottom: 0.25rem;
 }
 
+.thinking {
+  margin: 0.35rem 0 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px dashed var(--line);
+  background: #eef4ef;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.thinking summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.think-body {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.75rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.answer {
+  display: block;
+}
+
 .composer {
   display: grid;
   grid-template-columns: 1fr auto;

@@ -104,7 +104,7 @@ class LlamaCppBackend:
             str(self.n_gpu_layers),
             "--jinja",
         ]
-        # Qwen3-Thinking: without this, short max_tokens yields empty `content`
+        # Only disable thinking when explicitly requested in registry.
         if enable_thinking is False:
             cmd.extend(["--reasoning-budget", "0"])
         if extra_args:
