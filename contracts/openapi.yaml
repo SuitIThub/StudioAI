@@ -223,7 +223,7 @@ components:
         max_tokens:
           type: integer
           nullable: true
-          description: "Omit to use persona default (satyr=16384, stheno=8192)"
+          description: "Omit to use persona default (satyr=12288, stheno=8192)"
         temperature: { type: number, default: 0.7 }
         stream: { type: boolean, default: true }
     StructuredRequest:

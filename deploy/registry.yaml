@@ -5,9 +5,9 @@ models:
     backend: llamacpp
     path: "/home/suit/StudioAI/models/Qwen2.5-7B-Instruct-Uncensored.Q4_0.gguf"
     vram_mb: 4000
-    # Qwen2.5 typically 32k; raise further per-model if your GGUF/train window allows.
+    # Q4 weights + quantized KV cache → 32k fits 6GB better than FP16 KV.
     context_length: 32768
-    notes: "Qwen2.5 – context 32k"
+    notes: "Qwen2.5 Q4 – context 32k (KV cache quantized in worker config)"
 
   - id: stheno-8b
     name: "Stheno 8B Q4"
@@ -15,16 +15,18 @@ models:
     backend: llamacpp
     path: "/home/suit/StudioAI/models/L3-8B-Stheno-v3.2.Q4_K_M.gguf"
     vram_mb: 5200
-    # Llama-3 base is 8k; llama.cpp can allocate a larger window (quality may drop past native).
     context_length: 32768
-    notes: "Stheno – context window 32k"
+    notes: "Stheno Q4 – context 32k (KV cache quantized)"
 
   - id: satyr
-    name: "Satyr Q4"
+    name: "Satyr Q8"
     roles: [agent_chat]
     backend: llamacpp
     path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q8_0.gguf"
     vram_mb: 5000
-    context_length: 32768
+    # Q8 weights are heavy on 6GB; 32k FP16 KV alone needed ~4.5GB → OOM.
+    # 16k + q4 KV is the realistic ceiling unless you switch to a Q4 GGUF.
+    context_length: 16384
     enable_thinking: true
-    notes: "Satyr (Qwen3-Thinking) – context 32k; Core default_max_tokens=16384"
+    extra_args: ["-ctk", "q4_0", "-ctv", "q4_0"]
+    notes: "Satyr Q8 – context 16k + q4 KV; use Q4 GGUF to raise toward 32k"

@@ -40,8 +40,8 @@ PERSONAS: tuple[Persona, ...] = (
             "Reply in the user's language. Be concise unless the user asks for detail. "
             "You discuss scenes and poses creatively — you do not claim hardware control here."
         ),
-        # Thinking + long replies within 32k context window.
-        default_max_tokens=16384,
+        # Thinking + long replies within Satyr's 16k context (Q8 on 6GB).
+        default_max_tokens=12288,
     ),
 )
 

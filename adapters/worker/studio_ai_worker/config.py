@@ -33,6 +33,8 @@ class WorkerSettings(BaseSettings):
     llamacpp_base_port: int = 8080
     llamacpp_ctx_size: int = 32768
     llamacpp_n_gpu_layers: int = 99
+    llamacpp_cache_type_k: str = "q8_0"
+    llamacpp_cache_type_v: str = "q8_0"
     health_timeout_s: float = 2.0
     load_timeout_s: float = 180.0
     config_path: Path | None = None
@@ -100,6 +102,8 @@ def settings_from_config(config_path: Path | None = None) -> WorkerSettings:
         "llamacpp_base_port": llamacpp.get("base_port", 8080),
         "llamacpp_ctx_size": llamacpp.get("ctx_size", 32768),
         "llamacpp_n_gpu_layers": llamacpp.get("n_gpu_layers", 99),
+        "llamacpp_cache_type_k": str(llamacpp.get("cache_type_k", "q8_0")),
+        "llamacpp_cache_type_v": str(llamacpp.get("cache_type_v", "q8_0")),
         "config_path": path if path.is_file() else None,
     }
     # Resolve relative paths against config file directory / repo root

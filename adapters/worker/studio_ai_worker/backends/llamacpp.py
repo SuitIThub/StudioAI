@@ -36,6 +36,8 @@ class LlamaCppBackend:
         base_port: int = 8080,
         ctx_size: int = 32768,
         n_gpu_layers: int = 99,
+        cache_type_k: str = "q8_0",
+        cache_type_v: str = "q8_0",
         load_timeout_s: float = 180.0,
     ) -> None:
         self.bin_path = bin_path
@@ -43,6 +45,8 @@ class LlamaCppBackend:
         self.base_port = base_port
         self.ctx_size = ctx_size
         self.n_gpu_layers = n_gpu_layers
+        self.cache_type_k = cache_type_k
+        self.cache_type_v = cache_type_v
         self.load_timeout_s = load_timeout_s
         self._servers: dict[str, RunningServer] = {}
         self._next_port = base_port
@@ -104,11 +108,19 @@ class LlamaCppBackend:
             str(self.n_gpu_layers),
             "--jinja",
         ]
+        # Quantized KV cache (big VRAM saver for long context on 6GB GPUs).
+        # Skipped if model extra_args already set -ctk/-ctv.
+        extra = list(extra_args or [])
+        extra_joined = " ".join(extra)
+        if self.cache_type_k and "-ctk" not in extra_joined and "--cache-type-k" not in extra_joined:
+            cmd.extend(["-ctk", self.cache_type_k])
+        if self.cache_type_v and "-ctv" not in extra_joined and "--cache-type-v" not in extra_joined:
+            cmd.extend(["-ctv", self.cache_type_v])
         # Only disable thinking when explicitly requested in registry.
         if enable_thinking is False:
             cmd.extend(["--reasoning-budget", "0"])
-        if extra_args:
-            cmd.extend(extra_args)
+        if extra:
+            cmd.extend(extra)
         logger.info("Starting llama-server: %s", " ".join(cmd))
         try:
             proc = subprocess.Popen(
@@ -126,8 +138,15 @@ class LlamaCppBackend:
         server = RunningServer(model_id=model_id, model_path=model_path, port=port, process=proc)
         try:
             self._wait_ready(server)
-        except Exception:
+        except Exception as exc:
             self._terminate(proc)
+            # Surface OOM clearly for operators
+            msg = str(exc)
+            if "out of memory" in msg.lower() or "cudaMalloc failed" in msg:
+                raise RuntimeError(
+                    f"{msg}\nHint: lower context_length in registry.yaml for '{model_id}', "
+                    "use a smaller GGUF (Q4), or stronger KV quant (-ctk/-ctv q4_0)."
+                ) from exc
             raise
 
         self._servers[model_id] = server

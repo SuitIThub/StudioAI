@@ -1,4 +1,4 @@
-# StudioAI Home-Server Worker (Stage 1)
+# StudioAI Home-Server Worker (Stage 1+)
 # Copy to .env / edit paths, then: studio-ai-worker
 
 worker:
@@ -22,3 +22,7 @@ llamacpp:
   # Fallback only when a model has no context_length in registry.yaml
   ctx_size: 32768
   n_gpu_layers: 99
+  # Quantized KV cache – required for large context on 6GB cards.
+  # Override per model via registry extra_args (e.g. Satyr uses q4_0).
+  cache_type_k: q8_0
+  cache_type_v: q8_0

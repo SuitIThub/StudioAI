@@ -84,6 +84,8 @@ async def lifespan(app: FastAPI):
         base_port=settings.llamacpp_base_port,
         ctx_size=settings.llamacpp_ctx_size,
         n_gpu_layers=settings.llamacpp_n_gpu_layers,
+        cache_type_k=settings.llamacpp_cache_type_k,
+        cache_type_v=settings.llamacpp_cache_type_v,
         load_timeout_s=settings.load_timeout_s,
     )
     manager = ModelManager(
