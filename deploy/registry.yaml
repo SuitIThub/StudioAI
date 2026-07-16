@@ -22,7 +22,7 @@ models:
     name: "Satyr Q8"
     roles: [agent_chat]
     backend: llamacpp
-    path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q8_0.gguf"
+    path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q4_K_M.gguf"
     vram_mb: 5000
     # Q8 weights are heavy on 6GB; 32k FP16 KV alone needed ~4.5GB → OOM.
     # 16k + q4 KV is the realistic ceiling unless you switch to a Q4 GGUF.
