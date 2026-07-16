@@ -1,5 +1,5 @@
-# StudioAI Home-Server Worker (Stage 1+)
-# Start: export STUDIO_AI_CONFIG="$PWD/deploy/config.home-server.yaml" && studio-ai-worker
+# StudioAI Home-Server Worker (Stage 1)
+# Copy to .env / edit paths, then: studio-ai-worker
 
 worker:
   host: "0.0.0.0"
@@ -14,7 +14,8 @@ model_manager:
   grammars_dir: "grammars"
 
 llamacpp:
-  # Absolute path required unless llama-server is on PATH
+  # Ubuntu: absolute path to your build, e.g. "/home/you/llama.cpp/build/bin/llama-server"
+  # Or leave "llama-server" if that binary is on PATH.
   bin: "/home/suit/llama.cpp/build/bin/llama-server"
   host: "127.0.0.1"
   base_port: 8080
