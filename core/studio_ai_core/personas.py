@@ -41,8 +41,8 @@ PERSONAS: tuple[Persona, ...] = (
             "do not cut yourself short. "
             "You discuss scenes and poses creatively — you do not claim hardware control here."
         ),
-        # Thinking + long replies within Satyr's 16k context (Q8 on 6GB).
-        default_max_tokens=12288,
+        # Shared with thinking; worker caps thinking via reasoning_budget.
+        default_max_tokens=16384,
     ),
 )
 

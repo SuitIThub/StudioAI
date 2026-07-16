@@ -75,6 +75,6 @@ def test_build_messages_keeps_existing_system(tmp_path: Path):
 
 def test_satyr_default_max_tokens(tmp_path: Path):
     svc = ChatService(WorkerClient("http://127.0.0.1:9"), grammars_dir=tmp_path)
-    assert svc.resolve_max_tokens("satyr", None) == 12288
+    assert svc.resolve_max_tokens("satyr", None) == 16384
     assert svc.resolve_max_tokens("stheno", None) == 8192
     assert svc.resolve_max_tokens("satyr", 1024) == 1024

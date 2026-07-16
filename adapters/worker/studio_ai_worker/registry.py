@@ -22,6 +22,8 @@ class ModelSpec:
     notes: str | None = None
     # Qwen3-Thinking etc.: False disables thinking via llama-server flags + request kwargs
     enable_thinking: bool | None = None
+    # Cap thinking tokens when enable_thinking is true (llama.cpp --reasoning-budget)
+    reasoning_budget: int | None = None
     extra_args: list[str] | None = None
 
     @property
@@ -50,6 +52,9 @@ def load_registry(path: Path) -> dict[str, ModelSpec]:
         thinking = entry.get("enable_thinking")
         if thinking is not None:
             thinking = bool(thinking)
+        budget = entry.get("reasoning_budget")
+        if budget is not None:
+            budget = int(budget)
         out[model_id] = ModelSpec(
             id=model_id,
             name=str(entry.get("name") or model_id),
@@ -61,6 +66,7 @@ def load_registry(path: Path) -> dict[str, ModelSpec]:
             chat_template=entry.get("chat_template"),
             notes=entry.get("notes"),
             enable_thinking=thinking,
+            reasoning_budget=budget,
             extra_args=[str(a) for a in extra] or None,
         )
     return out

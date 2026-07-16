@@ -101,7 +101,17 @@
 
   function updatePersonaHint() {
     const p = personas.find((x) => x.id === personaEl.value);
-    personaHint.textContent = p ? p.description : "";
+    if (!p) {
+      personaHint.textContent = "";
+      return;
+    }
+    const budget = p.default_max_tokens ? " · max_tokens " + p.default_max_tokens : "";
+    personaHint.textContent = p.description + budget;
+  }
+
+  function personaMaxTokens() {
+    const p = personas.find((x) => x.id === personaEl.value);
+    return (p && p.default_max_tokens) || 8192;
   }
 
   personaEl.addEventListener("change", () => {
@@ -161,7 +171,8 @@
           messages: history,
           persona: personaEl.value,
           stream: true,
-          // omit max_tokens → Core uses persona default (Satyr 12288 / Stheno 8192)
+          // Always send explicitly – omitted values may hit an old Core default (512).
+          max_tokens: personaMaxTokens(),
         }),
       });
 
@@ -187,6 +198,7 @@
       let buffer = "";
       let full = "";
       let reasoning = "";
+      let finishReason = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -214,12 +226,16 @@
               continue;
             }
             if (obj.type === "meta") {
+              const mt = obj.max_tokens ? " · " + obj.max_tokens + " tok" : "";
               shell.metaEl.textContent =
-                (obj.persona || "") + " · " + (obj.model || "");
+                (obj.persona || "") + " · " + (obj.model || "") + mt;
               continue;
             }
             const choices = obj.choices || [];
             if (!choices.length) continue;
+            if (choices[0].finish_reason) {
+              finishReason = choices[0].finish_reason;
+            }
             const delta = choices[0].delta || {};
             const reasonPiece = delta.reasoning_content || delta.reasoning || "";
             if (reasonPiece) {
@@ -242,9 +258,16 @@
 
       if (full) {
         history.push({ role: "assistant", content: full });
+        if (finishReason === "length") {
+          const note = document.createElement("div");
+          note.className = "truncate-note";
+          note.textContent =
+            "Abgeschnitten (Token-Limit). Thinking verbraucht mit max_tokens dasselbe Budget — ggf. kürzer denken lassen oder max_tokens erhöhen.";
+          shell.root.appendChild(note);
+        }
       } else if (reasoning) {
         shell.answer.textContent =
-          "(noch keine Antwort – Thinking hat das Token-Budget verbraucht; erneut versuchen oder kürzer fragen)";
+          "(noch keine Antwort – Thinking hat das Token-Budget verbraucht)";
         history.pop();
       } else {
         shell.answer.textContent = "(leere Antwort)";

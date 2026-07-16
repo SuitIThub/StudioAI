@@ -98,6 +98,7 @@ class ModelManager:
             ctx_size=spec.context_length,
             extra_args=spec.extra_args,
             enable_thinking=spec.enable_thinking,
+            reasoning_budget=spec.reasoning_budget,
         )
         return {
             "ok": True,

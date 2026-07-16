@@ -208,8 +208,10 @@ select {
   overflow: auto;
 }
 
-.answer {
-  display: block;
+.truncate-note {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--danger);
 }
 
 .composer {

@@ -82,6 +82,7 @@ class LlamaCppBackend:
         *,
         extra_args: list[str] | None = None,
         enable_thinking: bool | None = None,
+        reasoning_budget: int | None = None,
     ) -> RunningServer:
         if model_id in self._servers:
             return self._servers[model_id]
@@ -116,9 +117,11 @@ class LlamaCppBackend:
             cmd.extend(["-ctk", self.cache_type_k])
         if self.cache_type_v and "-ctv" not in extra_joined and "--cache-type-v" not in extra_joined:
             cmd.extend(["-ctv", self.cache_type_v])
-        # Only disable thinking when explicitly requested in registry.
+        # Thinking control via llama.cpp --reasoning-budget
         if enable_thinking is False:
             cmd.extend(["--reasoning-budget", "0"])
+        elif reasoning_budget is not None and reasoning_budget >= 0:
+            cmd.extend(["--reasoning-budget", str(reasoning_budget)])
         if extra:
             cmd.extend(extra)
         logger.info("Starting llama-server: %s", " ".join(cmd))

@@ -141,6 +141,7 @@ class ChatService:
             "model": result.get("model", model_id),
             "message": message,
             "finish_reason": result.get("finish_reason"),
+            "max_tokens": tokens,
         }
 
     async def _stream_chat(
@@ -158,6 +159,7 @@ class ChatService:
             "persona": persona_id,
             "model": model_id,
             "thinking": True,
+            "max_tokens": max_tokens,
         }
         yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
 
