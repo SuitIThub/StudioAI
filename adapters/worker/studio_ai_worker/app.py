@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
+import shutil
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from studio_ai_worker import CONTRACT_VERSION
 from studio_ai_worker.backends.llamacpp import LlamaCppBackend
@@ -56,6 +59,7 @@ class ChatCompletionRequest(BaseModel):
     messages: list[ChatMessage]
     max_tokens: int = 512
     temperature: float = 0.7
+    stream: bool = False
     grammar: str | None = None
     grammar_file: str | None = None
 
@@ -64,6 +68,15 @@ class ChatCompletionRequest(BaseModel):
 async def lifespan(app: FastAPI):
     global settings, manager
     settings = settings_from_config()
+    bin_path = Path(settings.llamacpp_bin)
+    if not bin_path.is_file() and shutil.which(settings.llamacpp_bin) is None:
+        logger.error(
+            "llama-server binary not found: %r (config=%s). "
+            "Set llamacpp.bin in deploy/config.home-server.yaml to the absolute path, "
+            "e.g. /home/suit/llama.cpp/build/bin/llama-server",
+            settings.llamacpp_bin,
+            settings.config_path,
+        )
     backend = LlamaCppBackend(
         bin_path=settings.llamacpp_bin,
         host=settings.llamacpp_host,
@@ -79,9 +92,11 @@ async def lifespan(app: FastAPI):
         grammars_dir=settings.grammars_dir,
     )
     logger.info(
-        "Worker started (contract=%s, max_loaded=%s, registry=%s)",
+        "Worker started (contract=%s, max_loaded=%s, config=%s, llamacpp_bin=%s, registry=%s)",
         CONTRACT_VERSION,
         settings.max_loaded,
+        settings.config_path,
+        settings.llamacpp_bin,
         settings.registry_path,
     )
     yield
@@ -172,15 +187,33 @@ async def completions(body: CompletionRequest, _: None = Depends(verify_token)) 
 @app.post("/v1/chat/completions")
 async def chat_completions(
     body: ChatCompletionRequest, _: None = Depends(verify_token)
-) -> dict[str, Any]:
+):
     try:
         model_id = manager.resolve_default_model(body.model)
         if not manager.backend.is_loaded(model_id):
             manager.load(model_id)
         grammar = manager.read_grammar(body.grammar, body.grammar_file)
+        messages = [m.model_dump() for m in body.messages]
+        if body.stream:
+
+            async def event_gen():
+                async for line in manager.backend.chat_stream(
+                    model_id,
+                    messages=messages,
+                    max_tokens=body.max_tokens,
+                    temperature=body.temperature,
+                    grammar=grammar,
+                ):
+                    if line == "":
+                        yield "\n"
+                    else:
+                        yield f"{line}\n"
+
+            return StreamingResponse(event_gen(), media_type="text/event-stream")
+
         return await manager.backend.chat(
             model_id,
-            messages=[m.model_dump() for m in body.messages],
+            messages=messages,
             max_tokens=body.max_tokens,
             temperature=body.temperature,
             grammar=grammar,

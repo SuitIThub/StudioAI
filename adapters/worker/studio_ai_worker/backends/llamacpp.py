@@ -251,6 +251,36 @@ class LlamaCppBackend:
             "finish_reason": choice.get("finish_reason"),
         }
 
+    async def chat_stream(
+        self,
+        model_id: str,
+        *,
+        messages: list[dict[str, str]],
+        max_tokens: int = 512,
+        temperature: float = 0.7,
+        grammar: str | None = None,
+    ):
+        """Yield raw SSE lines from llama.cpp (data: ... / [DONE])."""
+        server = self._require(model_id)
+        body: dict[str, Any] = {
+            "model": model_id,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+        if grammar:
+            body["grammar"] = grammar
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream(
+                "POST", f"{server.base_url}/v1/chat/completions", json=body
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if line is not None:
+                        yield line
+
     def _require(self, model_id: str) -> RunningServer:
         server = self._servers.get(model_id)
         if server is None:

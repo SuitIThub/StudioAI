@@ -1,27 +1,102 @@
 openapi: 3.1.0
 info:
-  title: StudioAI Worker API
-  version: "0.1.0"
+  title: StudioAI API
+  version: "0.2.0"
   description: |
-    Stage 1 – Model infrastructure.
-    OpenAPI is the DTO source of truth (Decision B). x-contract-version must match Worker.
-  x-contract-version: "0.1.0"
+    Stage 2 – Core LLM chat (SoT) + Worker model runner.
+    OpenAPI is the DTO source of truth (Decision B).
+    Consumers talk to Core (`/v1/chat`, `/v1/structured`). Worker remains thin.
+  x-contract-version: "0.2.0"
 servers:
+  - url: http://127.0.0.1:7860
+    description: Core (main PC)
   - url: http://127.0.0.1:7850
+    description: Worker (Heimserver)
+
 paths:
   /health:
     get:
-      operationId: getHealth
+      operationId: getCoreHealth
+      tags: [core]
       responses:
         "200":
-          description: OK
+          description: Core health (includes worker online flag)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthResponse"
+                $ref: "#/components/schemas/CoreHealthResponse"
+
+  /v1/personas:
+    get:
+      operationId: listPersonas
+      tags: [core]
+      responses:
+        "200":
+          description: Chat personas (Stheno / Satyr)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonaListResponse"
+
+  /v1/profiles:
+    get:
+      operationId: listProfiles
+      tags: [core]
+      responses:
+        "200":
+          description: Model role profiles
+
+  /v1/models:
+    get:
+      operationId: listWorkerModelsViaCore
+      tags: [core]
+      responses:
+        "200":
+          description: Models from worker
+        "503":
+          description: Worker offline
+
+  /v1/chat:
+    post:
+      operationId: createChat
+      tags: [core]
+      summary: Multi-turn chat with persona / role routing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoreChatRequest"
+      responses:
+        "200":
+          description: JSON chat result or SSE stream (stream=true)
+        "400":
+          description: Routing error
+        "503":
+          description: Worker offline
+
+  /v1/structured:
+    post:
+      operationId: createStructured
+      tags: [core]
+      summary: Structured JSON via technical model (Qwen) + GBNF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StructuredRequest"
+      responses:
+        "200":
+          description: Parsed JSON probe result
+        "503":
+          description: Worker offline
+
+  # --- Worker (thin) – Stage 1 surface, still used by Core ---
   /models:
     get:
       operationId: listModels
+      tags: [worker]
       responses:
         "200":
           description: OK
@@ -32,6 +107,7 @@ paths:
   /models/{model_id}/load:
     post:
       operationId: loadModel
+      tags: [worker]
       parameters:
         - name: model_id
           in: path
@@ -45,6 +121,7 @@ paths:
   /models/{model_id}/unload:
     post:
       operationId: unloadModel
+      tags: [worker]
       parameters:
         - name: model_id
           in: path
@@ -56,6 +133,7 @@ paths:
   /models/swap:
     post:
       operationId: swapModels
+      tags: [worker]
       requestBody:
         required: true
         content:
@@ -68,6 +146,7 @@ paths:
   /v1/completions:
     post:
       operationId: createCompletion
+      tags: [worker]
       requestBody:
         required: true
         content:
@@ -80,6 +159,7 @@ paths:
   /v1/chat/completions:
     post:
       operationId: createChatCompletion
+      tags: [worker]
       requestBody:
         required: true
         content:
@@ -88,10 +168,74 @@ paths:
               $ref: "#/components/schemas/ChatCompletionRequest"
       responses:
         "200":
-          description: OK
+          description: OK or SSE when stream=true
 
 components:
   schemas:
+    CoreHealthResponse:
+      type: object
+      required: [status, contract_version, node_id, worker]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        contract_version: { type: string }
+        node_id: { type: string }
+        worker:
+          type: object
+          properties:
+            url: { type: string }
+            online: { type: boolean }
+            health: { type: object, nullable: true }
+        detail: { type: string, nullable: true }
+    Persona:
+      type: object
+      required: [id, name, model_id, description]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        model_id: { type: string }
+        description: { type: string }
+    PersonaListResponse:
+      type: object
+      required: [personas, default_persona]
+      properties:
+        personas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Persona"
+        default_persona: { type: string }
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string }
+        content: { type: string }
+    CoreChatRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        persona: { type: string, nullable: true, description: "stheno | satyr" }
+        model: { type: string, nullable: true }
+        max_tokens: { type: integer, default: 512 }
+        temperature: { type: number, default: 0.7 }
+        stream: { type: boolean, default: true }
+    StructuredRequest:
+      type: object
+      properties:
+        prompt: { type: string, nullable: true }
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          nullable: true
+        model: { type: string, nullable: true }
+        max_tokens: { type: integer, default: 256 }
+        temperature: { type: number, default: 0.1 }
+        grammar_file: { type: string, default: smoke_json.gbnf }
+        grammar: { type: string, nullable: true }
     HealthResponse:
       type: object
       required: [status, contract_version, loaded_models, backend]
@@ -141,12 +285,6 @@ components:
         temperature: { type: number, default: 0.2 }
         grammar: { type: string, nullable: true }
         grammar_file: { type: string, nullable: true }
-    ChatMessage:
-      type: object
-      required: [role, content]
-      properties:
-        role: { type: string }
-        content: { type: string }
     ChatCompletionRequest:
       type: object
       required: [messages]
@@ -158,5 +296,6 @@ components:
             $ref: "#/components/schemas/ChatMessage"
         max_tokens: { type: integer, default: 512 }
         temperature: { type: number, default: 0.7 }
+        stream: { type: boolean, default: false }
         grammar: { type: string, nullable: true }
         grammar_file: { type: string, nullable: true }

@@ -1,103 +1,100 @@
-# StudioAI – Stage 1: Model Infrastructure
+# StudioAI – Stage 2: LLM Chat
 
-Zentrales Monorepo für den Studio-AI-Stack. **Stufe 1** liefert nur die nötigste Infrastruktur: Modelle registrieren, laden/entladen/swappen und per llama.cpp Inference ausführen.
+Zentrales Monorepo. **Stufe 2** baut auf Stufe 1 auf: Core orchestriert Chat mit Personas (Stheno/Satyr), Role-Routing und Streaming. Der Heimserver-Worker bleibt thin.
 
-**Heimserver-Zielplattform: Ubuntu** (Worker läuft dort). Der Windows-Haupt-PC kommt ab späteren Stufen dazu.
+| Komponente | Host | Port | Rolle |
+|------------|------|------|--------|
+| **Core** | Haupt-PC (Windows ok) | `7860` | Chat-API, Web-UI, CLI, Routing |
+| **Worker** | Heimserver (Ubuntu) | `7850` | Model load/swap + llama.cpp |
 
-## Was ist drin
+**Noch nicht:** Studio-Bridge, JoyCaption, PoseBrowser, Indexierung.
+
+## Was ist neu in Stufe 2
 
 | Pfad | Rolle |
 |------|--------|
-| `adapters/worker/` | Thin Worker (FastAPI) + Model-Manager + llama.cpp-Backend |
-| `core/studio_ai_core/` | Profile-Definitionen (SoT für Rollen) |
-| `deploy/` | Config, `registry.yaml` (Platzhalter-Pfade), GBNF |
-| `contracts/openapi.yaml` | API-SoT für spätere C#-Codegen (Entscheidung B) |
+| `core/studio_ai_core/` | Chat-Service, Personas, Routing, FastAPI + Web-UI |
+| `POST /v1/chat` | Mehrturn-Chat (SSE-Streaming), Persona Stheno/Satyr |
+| `POST /v1/structured` | Role `structured_json` → Qwen + GBNF |
+| `studio-ai-chat` | Interaktive CLI gegen Core |
+| Worker `stream: true` | Thin Pass-through SSE von llama.cpp |
 
-**Noch nicht (kommt in späteren Stufen):** Studio-Bridge, JoyCaption, Chat-UI, PoseBrowser.
+## Voraussetzungen
 
-## Voraussetzungen (Heimserver / Ubuntu)
+- Stufe 1 auf dem Heimserver lauffähig (Worker + GGUF-Pfade + llama-server)
+- Python 3.10+ auf dem **Haupt-PC** (Core) und Heimserver (Worker)
+- LAN-Erreichbarkeit Haupt-PC → Heimserver:7850
 
-- Ubuntu mit NVIDIA-Treiber (GTX 2060 Super)
-- Python 3.10+ (`python3`, `python3-venv`)
-- Selbst kompiliertes **llama.cpp** mit `llama-server` im `PATH` oder absolutem Pfad in der Config
-- GGUF-Dateien für Qwen / Stheno / Satyr (Pfade in `deploy/registry.yaml`)
+## Setup
 
-## Setup (Ubuntu)
+### Heimserver (Worker – unverändert Stufe 1)
 
 ```bash
 cd /path/to/StudioAI
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-
-# Pfade anpassen:
-#   deploy/registry.yaml              → echte .gguf-Pfade (Linux-Absolutpfade)
-#   deploy/config.home-server.yaml    → llamacpp.bin z.B. /home/you/llama.cpp/build/bin/llama-server
-```
-
-## Start (Ubuntu)
-
-```bash
-cd /path/to/StudioAI
-source .venv/bin/activate
+# registry.yaml + config.home-server.yaml anpassen
 export STUDIO_AI_CONFIG="$PWD/deploy/config.home-server.yaml"
 studio-ai-worker
 ```
 
-API: `http://<heimserver-lan-ip>:7850`  
-Docs: `http://<heimserver-lan-ip>:7850/docs`
+### Haupt-PC (Core)
 
-Firewall (falls nötig):
+```powershell
+cd H:\Dateien\Dokumente\Repos\StudioAI
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+
+# deploy/config.main-pc.yaml → worker_remote.url = Heimserver-LAN-IP
+$env:STUDIO_AI_CORE_CONFIG = "$PWD\deploy\config.main-pc.yaml"
+studio-ai-core
+```
+
+- Web-UI: `http://127.0.0.1:7860/` (oder LAN-IP des Haupt-PCs)
+- API-Docs: `http://127.0.0.1:7860/docs`
+- CLI: `studio-ai-chat --base http://127.0.0.1:7860`
+
+Firewall Haupt-PC (falls LAN-Chat von anderem Gerät): Port **7860**.
+
+## Role-Routing
+
+| Anfrage | Route |
+|---------|--------|
+| `/v1/chat` + persona `stheno` / `satyr` | `agent_chat` → Stheno / Satyr |
+| `/v1/structured` | `structured_json` → Qwen + GBNF |
+| Chat mit `model=qwen-technical` | **400** (Routing-Fehler) |
+
+Bei `max_loaded=1` swapped der Core automatisch das geladene Modell.
+
+## Offline-Verhalten
+
+Wenn der Worker down ist:
+
+- `GET /health` → `status=degraded`, `worker.online=false`
+- `POST /v1/chat` / `/v1/structured` → **503** mit `code: worker_offline`
+
+## Abnahme-Checkliste (Stufe 2) — PAUSE Test
+
+- [ ] Worker + Core laufen; Core `GET /health` zeigt `worker.online=true`
+- [ ] Web-UI oder CLI: Mehrturn-Chat mit Stheno
+- [ ] Persona-Wechsel auf Satyr (Modell-Swap, Chat funktioniert)
+- [ ] Structured-Probe: `.\scripts\smoke_stage2.ps1 -Structured` → valides JSON
+- [ ] Worker stoppen → Chat zeigt klaren Offline-Fehler (503 / UI-Hinweis)
+- [ ] Von anderem LAN-Gerät Core-UI öffnen (optional)
+
+Smoke:
+
+```powershell
+.\scripts\smoke_stage2.ps1 -Chat -Persona stheno
+.\scripts\smoke_stage2.ps1 -Structured
+```
 
 ```bash
-sudo ufw allow 7850/tcp
+./scripts/smoke_stage2.sh --chat --persona stheno
+./scripts/smoke_stage2.sh --structured
 ```
-
-## API (Kurz)
-
-```
-GET  /health
-GET  /models
-POST /models/{id}/load
-POST /models/{id}/unload
-POST /models/swap                 { "unload_id": "...", "load_id": "..." }
-POST /v1/completions              { prompt, model?, grammar_file? }
-POST /v1/chat/completions         { messages, model?, ... }
-```
-
-`max_loaded_models: 1` (Default) – zweites Load ohne Unload → **409**. Nutze `/models/swap`.
-
-Optional Auth: `worker.token` in Config → Header `Authorization: Bearer <token>`.
-
-## Abnahme-Checkliste (Stufe 1) — PAUSE Test
-
-- [ ] Worker startet; `GET /health` → `status=ok`, `contract_version=0.1.0`
-- [ ] `GET /models` listet `qwen-technical`, `stheno-8b`, `satyr`
-- [ ] Pfade in `registry.yaml` gesetzt (keine `CHANGE_ME` mehr, Linux-Pfade)
-- [ ] `POST /models/qwen-technical/load` erfolgreich
-- [ ] GBNF-Smoke:
-  ```bash
-  chmod +x scripts/smoke_stage1.sh
-  ./scripts/smoke_stage1.sh --gbnf --model qwen-technical
-  ```
-  Antwort ist valides JSON laut `deploy/grammars/smoke_json.gbnf`
-- [ ] Swap qwen → stheno; Chat-Smoke:
-  ```bash
-  ./scripts/smoke_stage1.sh --chat --model stheno-8b
-  ```
-- [ ] Satyr ebenfalls load/unload bzw. swap
-- [ ] Zweites Load bei vollem Slot ohne Unload → 409 (kein Doppel-VRAM)
-
-## Model-Rollen (Core-Profiles)
-
-| ID | Rollen |
-|----|--------|
-| `qwen-technical` | `index_merge`, `structured_json` (+ GBNF) |
-| `stheno-8b` | `agent_chat`, `scene_feedback_polish` |
-| `satyr` | `agent_chat` |
-
-Posecode bleibt später **regelbasiert** im Core – keine Modell-Rolle `posecode_interpret`.
 
 ## Nächste Stufe
 
-Nach deinem persönlichen Test und Freigabe: **Stufe 2 – LLM-Chat-Einbindung** (Streaming-Chat-UI am Core).
+Nach Test + Freigabe: **Stufe 3 – Capture + Describe** (Bridge, JoyCaption, Posecode, FTS).

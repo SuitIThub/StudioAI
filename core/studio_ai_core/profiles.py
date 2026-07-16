@@ -13,7 +13,7 @@ class ModelProfile:
     capabilities: tuple[str, ...] = field(default_factory=tuple)
 
 
-# Stage 1: technical (Qwen) for structured JSON; chat models for RP/dialog.
+# Technical (Qwen) for structured JSON; chat models for RP/dialog.
 # posecode_interpret is intentionally NOT a model role – that stays rule-based in Core later.
 DEFAULT_PROFILES: tuple[ModelProfile, ...] = (
     ModelProfile(
@@ -46,3 +46,7 @@ def profile_for_role(role: str) -> ModelProfile | None:
         if role in profile.roles:
             return profile
     return None
+
+
+def profiles_for_role(role: str) -> list[ModelProfile]:
+    return [p for p in DEFAULT_PROFILES if role in p.roles]

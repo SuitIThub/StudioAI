@@ -1,10 +1,19 @@
-# Optional later: run Core (primary) on the Studio PC.
-# Stage 1 only needs the home-server worker.
+# StudioAI Core (primary) on the Studio / main PC – Stage 2
+# Start: STUDIO_AI_CORE_CONFIG=.../config.main-pc.yaml studio-ai-core
 
 node:
   id: main-pc
   role: primary
 
+core:
+  host: "0.0.0.0"
+  port: 7860
+  default_persona: stheno
+  worker_timeout_s: 180
+  health_timeout_s: 3
+  grammars_dir: "grammars"
+
 worker_remote:
-  url: "http://192.168.1.100:7850"   # <-- Heimserver LAN IP
+  # Heimserver LAN IP (Worker Stage 1)
+  url: "http://192.168.178.21:7850"
   token: ""

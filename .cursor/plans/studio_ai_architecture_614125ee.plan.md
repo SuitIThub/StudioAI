@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: stage-2-llm-chat
     content: "Stufe 2: LLM-Chat API + einfache UI/CLI + Role-Routing — dann PAUSE Test"
-    status: pending
+    status: completed
   - id: stage-3-capture-describe
     content: "Stufe 3: Capture+Describe + regelbasiertes Posecode + Qwen GBNF Merge + Batch/FTS-CLI — dann PAUSE Test"
     status: pending

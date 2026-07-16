@@ -1,4 +1,4 @@
-"""CLI entry: studio-ai-worker"""
+"""CLI entry: studio-ai-core"""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import sys
 
 import uvicorn
 
-from studio_ai_worker.config import settings_from_config
+from studio_ai_core.config import settings_from_config
 
 
 def main() -> None:
@@ -21,7 +21,7 @@ def main() -> None:
         logging.error("%s", exc)
         sys.exit(1)
     uvicorn.run(
-        "studio_ai_worker.app:app",
+        "studio_ai_core.app:app",
         host=settings.host,
         port=settings.port,
         reload=False,

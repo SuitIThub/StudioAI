@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StudioAI Chat</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">StudioAI</span>
+        <span class="brand-sub">Core Chat · Stufe 2</span>
+      </div>
+      <div class="status" id="status">Prüfe Verbindung…</div>
+    </header>
+
+    <aside class="sidebar">
+      <label class="field">
+        <span>Persona</span>
+        <select id="persona"></select>
+      </label>
+      <p class="hint" id="personaHint"></p>
+      <button type="button" id="btnClear" class="ghost">Chat leeren</button>
+      <button type="button" id="btnStructured" class="ghost">Structured JSON Probe</button>
+      <pre id="structuredOut" class="structured" hidden></pre>
+    </aside>
+
+    <main class="chat">
+      <div id="messages" class="messages" aria-live="polite"></div>
+      <form id="form" class="composer">
+        <textarea id="input" rows="2" placeholder="Nachricht… (Enter senden, Shift+Enter Zeilenumbruch)" required></textarea>
+        <button type="submit" id="send">Senden</button>
+      </form>
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
