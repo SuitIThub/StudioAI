@@ -161,7 +161,7 @@
           messages: history,
           persona: personaEl.value,
           stream: true,
-          max_tokens: 2048,
+          // omit max_tokens → Core uses persona default (Satyr 16384 / Stheno 8192)
         }),
       });
 

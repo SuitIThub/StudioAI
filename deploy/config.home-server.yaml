@@ -19,5 +19,6 @@ llamacpp:
   bin: "/home/suit/llama.cpp/build/bin/llama-server"
   host: "127.0.0.1"
   base_port: 8080
-  ctx_size: 4096
+  # Fallback only when a model has no context_length in registry.yaml
+  ctx_size: 32768
   n_gpu_layers: 99

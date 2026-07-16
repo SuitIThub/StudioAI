@@ -5,8 +5,9 @@ models:
     backend: llamacpp
     path: "/home/suit/StudioAI/models/Qwen2.5-7B-Instruct-Uncensored.Q4_0.gguf"
     vram_mb: 4000
-    context_length: 8192
-    notes: "Qwen"
+    # Qwen2.5 typically 32k; raise further per-model if your GGUF/train window allows.
+    context_length: 32768
+    notes: "Qwen2.5 – context 32k"
 
   - id: stheno-8b
     name: "Stheno 8B Q4"
@@ -14,8 +15,9 @@ models:
     backend: llamacpp
     path: "/home/suit/StudioAI/models/L3-8B-Stheno-v3.2.Q4_K_M.gguf"
     vram_mb: 5200
-    context_length: 8192
-    notes: "Stheno"
+    # Llama-3 base is 8k; llama.cpp can allocate a larger window (quality may drop past native).
+    context_length: 32768
+    notes: "Stheno – context window 32k"
 
   - id: satyr
     name: "Satyr Q4"
@@ -23,8 +25,6 @@ models:
     backend: llamacpp
     path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q8_0.gguf"
     vram_mb: 5000
-    context_length: 8192
-    # Qwen3-Thinking: keep reasoning on; Core/UI separate it from the answer.
-    # Needs enough max_tokens (Core default 2048) so the answer is not cut off.
+    context_length: 32768
     enable_thinking: true
-    notes: "Satyr (Qwen3-Thinking) – thinking enabled"
+    notes: "Satyr (Qwen3-Thinking) – context 32k; Core default_max_tokens=16384"

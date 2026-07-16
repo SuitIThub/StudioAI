@@ -54,16 +54,27 @@ class ChatService:
         self.default_persona = default_persona
         self.grammars_dir = grammars_dir
 
-    def list_personas(self) -> list[dict[str, str]]:
+    def list_personas(self) -> list[dict[str, str | int]]:
         return [
             {
                 "id": p.id,
                 "name": p.name,
                 "model_id": p.model_id,
                 "description": p.description,
+                "default_max_tokens": p.default_max_tokens,
             }
             for p in PERSONAS
         ]
+
+    def resolve_max_tokens(self, persona_id: str | None, max_tokens: int | None) -> int:
+        if max_tokens is not None and max_tokens > 0:
+            return max_tokens
+        if persona_id:
+            try:
+                return get_persona(persona_id).default_max_tokens
+            except KeyError:
+                pass
+        return get_persona(self.default_persona).default_max_tokens
 
     def build_messages(
         self,
@@ -87,7 +98,7 @@ class ChatService:
         messages: list[dict[str, str]],
         persona: str | None = None,
         model: str | None = None,
-        max_tokens: int = 2048,
+        max_tokens: int | None = None,
         temperature: float = 0.7,
         stream: bool = False,
     ) -> dict[str, Any] | AsyncIterator[str]:
@@ -102,20 +113,21 @@ class ChatService:
 
         built = self.build_messages(messages, persona_id=persona_id)
         await self.worker.ensure_model(model_id)
+        tokens = self.resolve_max_tokens(persona_id, max_tokens)
 
         if stream:
             return self._stream_chat(
                 model_id=model_id,
                 persona_id=persona_id,
                 messages=built,
-                max_tokens=max_tokens,
+                max_tokens=tokens,
                 temperature=temperature,
             )
 
         result = await self.worker.chat(
             model=model_id,
             messages=built,
-            max_tokens=max_tokens,
+            max_tokens=tokens,
             temperature=temperature,
         )
         message = _normalize_assistant_message(

@@ -31,7 +31,7 @@ class WorkerSettings(BaseSettings):
     llamacpp_bin: str = "llama-server"
     llamacpp_host: str = "127.0.0.1"
     llamacpp_base_port: int = 8080
-    llamacpp_ctx_size: int = 4096
+    llamacpp_ctx_size: int = 32768
     llamacpp_n_gpu_layers: int = 99
     health_timeout_s: float = 2.0
     load_timeout_s: float = 180.0
@@ -98,7 +98,7 @@ def settings_from_config(config_path: Path | None = None) -> WorkerSettings:
         "llamacpp_bin": resolve_llamacpp_bin(bin_raw),
         "llamacpp_host": llamacpp.get("host", "127.0.0.1"),
         "llamacpp_base_port": llamacpp.get("base_port", 8080),
-        "llamacpp_ctx_size": llamacpp.get("ctx_size", 4096),
+        "llamacpp_ctx_size": llamacpp.get("ctx_size", 32768),
         "llamacpp_n_gpu_layers": llamacpp.get("n_gpu_layers", 99),
         "config_path": path if path.is_file() else None,
     }

@@ -12,6 +12,8 @@ class Persona:
     model_id: str
     description: str
     system_prompt: str
+    # Generation budget (thinking models need headroom for reasoning + answer)
+    default_max_tokens: int = 2048
 
 
 PERSONAS: tuple[Persona, ...] = (
@@ -26,6 +28,7 @@ PERSONAS: tuple[Persona, ...] = (
             "You help with creative posing ideas and scene discussion — you do not claim to "
             "control Studio hardware directly in this stage."
         ),
+        default_max_tokens=8192,
     ),
     Persona(
         id="satyr",
@@ -37,6 +40,8 @@ PERSONAS: tuple[Persona, ...] = (
             "Reply in the user's language. Be concise unless the user asks for detail. "
             "You discuss scenes and poses creatively — you do not claim hardware control here."
         ),
+        # Thinking + long replies within 32k context window.
+        default_max_tokens=16384,
     ),
 )
 

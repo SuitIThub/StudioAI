@@ -57,7 +57,7 @@ def load_registry(path: Path) -> dict[str, ModelSpec]:
             backend=str(entry.get("backend") or "llamacpp"),
             path=entry.get("path"),
             vram_mb=int(entry.get("vram_mb") or 0),
-            context_length=int(entry.get("context_length") or 4096),
+            context_length=int(entry.get("context_length") or 32768),
             chat_template=entry.get("chat_template"),
             notes=entry.get("notes"),
             enable_thinking=thinking,

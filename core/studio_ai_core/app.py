@@ -38,7 +38,8 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     persona: str | None = None
     model: str | None = None
-    max_tokens: int = 2048
+    # None → persona default (Satyr 6144, Stheno 2048)
+    max_tokens: int | None = None
     temperature: float = 0.7
     stream: bool = True
 

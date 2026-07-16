@@ -34,7 +34,7 @@ class LlamaCppBackend:
         bin_path: str = "llama-server",
         host: str = "127.0.0.1",
         base_port: int = 8080,
-        ctx_size: int = 4096,
+        ctx_size: int = 32768,
         n_gpu_layers: int = 99,
         load_timeout_s: float = 180.0,
     ) -> None:
