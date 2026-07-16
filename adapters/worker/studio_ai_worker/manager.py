@@ -92,12 +92,24 @@ class ModelManager:
             )
 
         path = Path(spec.path)
-        self.backend.load(model_id, path, ctx_size=spec.context_length)
+        self.backend.load(
+            model_id,
+            path,
+            ctx_size=spec.context_length,
+            extra_args=spec.extra_args,
+            enable_thinking=spec.enable_thinking,
+        )
         return {
             "ok": True,
             "message": f"Loaded '{model_id}'",
             "loaded_models": self.backend.loaded_ids,
         }
+
+    def chat_template_kwargs_for(self, model_id: str) -> dict[str, Any] | None:
+        spec = self.get_spec(model_id)
+        if spec.enable_thinking is False:
+            return {"enable_thinking": False}
+        return None
 
     def unload(self, model_id: str) -> dict[str, Any]:
         self.get_spec(model_id)

@@ -24,4 +24,6 @@ models:
     path: "/home/suit/StudioAI/models/Satyr-V0.1-4B-Q8_0.gguf"
     vram_mb: 5000
     context_length: 8192
-    notes: "Satyr"
+    # Qwen3-Thinking base: without this, short chats return empty content
+    enable_thinking: false
+    notes: "Satyr (Qwen3-Thinking) – thinking disabled for chat"

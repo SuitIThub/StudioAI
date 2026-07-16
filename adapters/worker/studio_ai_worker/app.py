@@ -62,6 +62,7 @@ class ChatCompletionRequest(BaseModel):
     stream: bool = False
     grammar: str | None = None
     grammar_file: str | None = None
+    chat_template_kwargs: dict[str, Any] | None = None
 
 
 @asynccontextmanager
@@ -194,6 +195,9 @@ async def chat_completions(
             manager.load(model_id)
         grammar = manager.read_grammar(body.grammar, body.grammar_file)
         messages = [m.model_dump() for m in body.messages]
+        tmpl_kwargs = body.chat_template_kwargs
+        if tmpl_kwargs is None:
+            tmpl_kwargs = manager.chat_template_kwargs_for(model_id)
         if body.stream:
 
             async def event_gen():
@@ -203,6 +207,7 @@ async def chat_completions(
                     max_tokens=body.max_tokens,
                     temperature=body.temperature,
                     grammar=grammar,
+                    chat_template_kwargs=tmpl_kwargs,
                 ):
                     if line == "":
                         yield "\n"
@@ -217,6 +222,7 @@ async def chat_completions(
             max_tokens=body.max_tokens,
             temperature=body.temperature,
             grammar=grammar,
+            chat_template_kwargs=tmpl_kwargs,
         )
     except ModelManagerError as exc:
         raise _mm_http(exc) from exc

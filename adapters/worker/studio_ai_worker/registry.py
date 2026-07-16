@@ -20,6 +20,9 @@ class ModelSpec:
     context_length: int
     chat_template: str | None = None
     notes: str | None = None
+    # Qwen3-Thinking etc.: False disables thinking via llama-server flags + request kwargs
+    enable_thinking: bool | None = None
+    extra_args: list[str] | None = None
 
     @property
     def resolved_path(self) -> Path | None:
@@ -41,6 +44,12 @@ def load_registry(path: Path) -> dict[str, ModelSpec]:
         if not isinstance(entry, dict):
             continue
         model_id = str(entry["id"])
+        extra = entry.get("extra_args") or []
+        if not isinstance(extra, list):
+            extra = []
+        thinking = entry.get("enable_thinking")
+        if thinking is not None:
+            thinking = bool(thinking)
         out[model_id] = ModelSpec(
             id=model_id,
             name=str(entry.get("name") or model_id),
@@ -51,6 +60,8 @@ def load_registry(path: Path) -> dict[str, ModelSpec]:
             context_length=int(entry.get("context_length") or 4096),
             chat_template=entry.get("chat_template"),
             notes=entry.get("notes"),
+            enable_thinking=thinking,
+            extra_args=[str(a) for a in extra] or None,
         )
     return out
 

@@ -70,7 +70,15 @@ class LlamaCppBackend:
             sock.settimeout(0.2)
             return sock.connect_ex(("127.0.0.1", port)) == 0
 
-    def load(self, model_id: str, model_path: Path, ctx_size: int | None = None) -> RunningServer:
+    def load(
+        self,
+        model_id: str,
+        model_path: Path,
+        ctx_size: int | None = None,
+        *,
+        extra_args: list[str] | None = None,
+        enable_thinking: bool | None = None,
+    ) -> RunningServer:
         if model_id in self._servers:
             return self._servers[model_id]
 
@@ -94,7 +102,13 @@ class LlamaCppBackend:
             str(ctx),
             "-ngl",
             str(self.n_gpu_layers),
+            "--jinja",
         ]
+        # Qwen3-Thinking: without this, short max_tokens yields empty `content`
+        if enable_thinking is False:
+            cmd.extend(["--reasoning-budget", "0"])
+        if extra_args:
+            cmd.extend(extra_args)
         logger.info("Starting llama-server: %s", " ".join(cmd))
         try:
             proc = subprocess.Popen(
@@ -226,6 +240,7 @@ class LlamaCppBackend:
         max_tokens: int = 512,
         temperature: float = 0.7,
         grammar: str | None = None,
+        chat_template_kwargs: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         server = self._require(model_id)
         body: dict[str, Any] = {
@@ -237,6 +252,8 @@ class LlamaCppBackend:
         }
         if grammar:
             body["grammar"] = grammar
+        if chat_template_kwargs:
+            body["chat_template_kwargs"] = chat_template_kwargs
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(f"{server.base_url}/v1/chat/completions", json=body)
@@ -249,6 +266,7 @@ class LlamaCppBackend:
             "model": model_id,
             "message": {"role": message.get("role", "assistant"), "content": message.get("content", "")},
             "finish_reason": choice.get("finish_reason"),
+            "reasoning_content": message.get("reasoning_content"),
         }
 
     async def chat_stream(
@@ -259,6 +277,7 @@ class LlamaCppBackend:
         max_tokens: int = 512,
         temperature: float = 0.7,
         grammar: str | None = None,
+        chat_template_kwargs: dict[str, Any] | None = None,
     ):
         """Yield raw SSE lines from llama.cpp (data: ... / [DONE])."""
         server = self._require(model_id)
@@ -271,6 +290,8 @@ class LlamaCppBackend:
         }
         if grammar:
             body["grammar"] = grammar
+        if chat_template_kwargs:
+            body["chat_template_kwargs"] = chat_template_kwargs
 
         async with httpx.AsyncClient(timeout=None) as client:
             async with client.stream(

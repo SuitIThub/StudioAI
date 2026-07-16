@@ -136,6 +136,7 @@
           messages: history,
           persona: personaEl.value,
           stream: true,
+          max_tokens: 1024,
         }),
       });
 
@@ -160,6 +161,7 @@
       const decoder = new TextDecoder();
       let buffer = "";
       let full = "";
+      let sawReasoning = false;
       let modelMeta = personaEl.value;
 
       while (true) {
@@ -196,6 +198,12 @@
             const choices = obj.choices || [];
             if (choices.length) {
               const delta = choices[0].delta || {};
+              if (delta.reasoning_content || delta.reasoning) {
+                sawReasoning = true;
+                if (!full) {
+                  assistantBody.textContent = "…denkt…";
+                }
+              }
               const piece = delta.content || "";
               if (piece) {
                 full += piece;
@@ -209,8 +217,10 @@
 
       if (full) {
         history.push({ role: "assistant", content: full });
-      } else if (!assistantBody.textContent) {
-        assistantBody.textContent = "(leere Antwort)";
+      } else if (!assistantBody.textContent || assistantBody.textContent === "…denkt…") {
+        assistantBody.textContent = sawReasoning
+          ? "(leere Antwort – Modell steckt im Thinking; Satyr neu laden mit enable_thinking: false)"
+          : "(leere Antwort)";
         history.pop();
       }
       await refreshHealth();
