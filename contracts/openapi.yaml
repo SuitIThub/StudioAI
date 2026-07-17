@@ -1,12 +1,11 @@
 openapi: 3.1.0
 info:
   title: StudioAI API
-  version: "0.2.0"
+  version: "0.3.0"
   description: |
-    Stage 2 – Core LLM chat (SoT) + Worker model runner.
+    Stage 3 – Core chat + capture/describe/index/search (SoT).
     OpenAPI is the DTO source of truth (Decision B).
-    Consumers talk to Core (`/v1/chat`, `/v1/structured`). Worker remains thin.
-  x-contract-version: "0.2.0"
+  x-contract-version: "0.3.0"
 servers:
   - url: http://127.0.0.1:7860
     description: Core (main PC)
@@ -91,6 +90,142 @@ paths:
           description: Parsed JSON probe result
         "503":
           description: Worker offline
+
+  /v1/posecode:
+    post:
+      operationId: derivePosecode
+      tags: [core]
+      summary: Rule-based posecode from pose_compact (no LLM)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pose_compact]
+              properties:
+                pose_compact: { type: string }
+      responses:
+        "200":
+          description: tags + text
+
+  /v1/capture:
+    post:
+      operationId: captureViews
+      tags: [core]
+      summary: Capture Studio views via Bridge + pose_compact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [character_id]
+              properties:
+                character_id: { type: integer }
+                pose_path: { type: string, nullable: true }
+                views:
+                  type: array
+                  items: { type: string }
+                size: { type: integer, default: 512 }
+      responses:
+        "200":
+          description: captures + pose_compact + posecode
+        "503":
+          description: Bridge offline
+
+  /v1/describe:
+    post:
+      operationId: describeAndIndex
+      tags: [core]
+      summary: Capture or offline folder → captions → merge → store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                folder: { type: string, nullable: true }
+                character_id: { type: integer, nullable: true }
+                pose_path: { type: string, nullable: true }
+                use_joycaption: { type: boolean, default: true }
+                use_merge: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Indexed pose
+
+  /v1/index/folder:
+    post:
+      operationId: indexFolder
+      tags: [core]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [folder]
+              properties:
+                folder: { type: string }
+                use_joycaption: { type: boolean, default: false }
+                use_merge: { type: boolean, default: true }
+      responses:
+        "200":
+          description: OK
+
+  /v1/index/batch:
+    post:
+      operationId: indexBatch
+      tags: [core]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [root]
+              properties:
+                root: { type: string }
+                use_joycaption: { type: boolean, default: false }
+                use_merge: { type: boolean, default: true }
+                limit: { type: integer, nullable: true }
+      responses:
+        "200":
+          description: Batch result
+
+  /v1/search:
+    post:
+      operationId: searchPoses
+      tags: [core]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string }
+                limit: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: FTS hits
+
+  /v1/poses/{pose_id}:
+    get:
+      operationId: getPoseIndex
+      tags: [core]
+      parameters:
+        - name: pose_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Stored index row
+        "404":
+          description: Not found
 
   # --- Worker (thin) – Stage 1 surface, still used by Core ---
   /models:

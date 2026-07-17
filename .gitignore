@@ -13,3 +13,5 @@ build/
 storage/models/
 *.gguf
 .DS_Store
+data/
+testdata/batch_poses/

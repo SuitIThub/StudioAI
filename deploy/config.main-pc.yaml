@@ -1,4 +1,4 @@
-# StudioAI Core (primary) on the Studio / main PC – Stage 2
+# StudioAI Core (primary) on the Studio / main PC – Stage 3
 # Start: STUDIO_AI_CORE_CONFIG=.../config.main-pc.yaml studio-ai-core
 
 node:
@@ -14,6 +14,21 @@ core:
   grammars_dir: "grammars"
 
 worker_remote:
-  # Heimserver LAN IP (Worker Stage 1)
+  # Heimserver LAN IP (Worker)
   url: "http://192.168.178.21:7850"
   token: ""
+
+bridge:
+  # StudioPoseBridge on the same PC as StudioNeoV2
+  url: "http://127.0.0.1:7842"
+  token: "64902a9327bc45d891164939876de30d"   # X-Pose-Token from BepInEx config
+
+indexing:
+  db_path: "../data/pose_index.sqlite"
+  capture_dir: "../data/captures"
+  joycaption_quant: "8bit"   # 8bit recommended for 16GB VRAM
+  cameras:
+    always: [front, three_quarter]
+    optional: [one_quarter]
+    one_quarter_mode: auto    # auto | always | off
+    one_quarter_angle: "45"   # numeric Bridge angle until one_quarter preset exists

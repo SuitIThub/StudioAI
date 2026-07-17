@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "studio-ai"
-version = "0.2.0"
-description = "StudioAI Core + Worker – Stage 2 LLM chat"
+version = "0.3.0"
+description = "StudioAI Core + Worker – Stage 3 capture/describe/index"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -20,11 +20,19 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5.0"]
+vision = [
+  "torch",
+  "transformers>=4.40",
+  "Pillow>=10.0",
+  "accelerate",
+  "bitsandbytes",
+]
 
 [project.scripts]
 studio-ai-worker = "studio_ai_worker.__main__:main"
 studio-ai-core = "studio_ai_core.__main__:main"
 studio-ai-chat = "studio_ai_core.cli:main"
+studio-ai = "studio_ai_core.cli_index:main"
 
 [tool.setuptools.packages.find]
 where = ["core", "adapters/worker"]

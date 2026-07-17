@@ -1,0 +1,8 @@
+root ::= object
+object ::= "{" ws "\"description\"" ws ":" ws string ws "," ws "\"tags\"" ws ":" ws string-array ws "," ws "\"synonyms\"" ws ":" ws string-array ws "}"
+string-array ::= "[" ws (string (ws "," ws string)*)? ws "]"
+string ::= "\"" chars "\""
+chars ::= char*
+char ::= [^"\\] | "\\" escape
+escape ::= ["\\/bfnrt] | "u" [0-9a-fA-F]{4}
+ws ::= [ \t\n]*

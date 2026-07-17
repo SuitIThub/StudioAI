@@ -1,100 +1,81 @@
-# StudioAI – Stage 2: LLM Chat
+# StudioAI – Stage 3: Capture + Describe + FTS Index
 
-Zentrales Monorepo. **Stufe 2** baut auf Stufe 1 auf: Core orchestriert Chat mit Personas (Stheno/Satyr), Role-Routing und Streaming. Der Heimserver-Worker bleibt thin.
+**Stufe 3** indexiert Posen suchtauglich: Bridge-Capture → regelbasiertes Posecode → JoyCaption → Qwen+GBNF-Merge → SQLite/FTS.
 
-| Komponente | Host | Port | Rolle |
-|------------|------|------|--------|
-| **Core** | Haupt-PC (Windows ok) | `7860` | Chat-API, Web-UI, CLI, Routing |
-| **Worker** | Heimserver (Ubuntu) | `7850` | Model load/swap + llama.cpp |
+| Komponente | Host | Port |
+|------------|------|------|
+| Core | Haupt-PC | 7860 |
+| Worker | Heimserver | 7850 |
+| StudioPoseBridge | Haupt-PC (Studio) | 7842 |
 
-**Noch nicht:** Studio-Bridge, JoyCaption, PoseBrowser, Indexierung.
+**Nicht in Stufe 3:** Scene-Feedback-Watch, PoseBrowser-AI-UI.
 
-## Was ist neu in Stufe 2
+## Neu in Stufe 3
 
-| Pfad | Rolle |
-|------|--------|
-| `core/studio_ai_core/` | Chat-Service, Personas, Routing, FastAPI + Web-UI |
-| `POST /v1/chat` | Mehrturn-Chat (SSE-Streaming), Persona Stheno/Satyr |
-| `POST /v1/structured` | Role `structured_json` → Qwen + GBNF |
-| `studio-ai-chat` | Interaktive CLI gegen Core |
-| Worker `stream: true` | Thin Pass-through SSE von llama.cpp |
+| Pfad / Befehl | Rolle |
+|---------------|--------|
+| `core/.../indexing/posecode` | Regeln: `pose_compact` → tags/text |
+| `core/.../indexing/joycaption` | JoyCaption-Client (`pip install -e ".[vision]"`) |
+| `core/.../indexing/merge` + `deploy/grammars/index_entry.gbnf` | Qwen-Merge |
+| `core/.../indexing/store` | SQLite + FTS5 |
+| `core/.../bridge` | HTTP-Client zu StudioPoseBridge |
+| `studio-ai search/posecode/capture/describe/batch` | CLI |
+| `POST /v1/capture`, `/v1/describe`, `/v1/search`, … | Core-API |
 
-## Voraussetzungen
-
-- Stufe 1 auf dem Heimserver lauffähig (Worker + GGUF-Pfade + llama-server)
-- Python 3.10+ auf dem **Haupt-PC** (Core) und Heimserver (Worker)
-- LAN-Erreichbarkeit Haupt-PC → Heimserver:7850
-
-## Setup
-
-### Heimserver (Worker – unverändert Stufe 1)
-
-```bash
-cd /path/to/StudioAI
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
-# registry.yaml + config.home-server.yaml anpassen
-export STUDIO_AI_CONFIG="$PWD/deploy/config.home-server.yaml"
-studio-ai-worker
-```
-
-### Haupt-PC (Core)
+## Setup (Haupt-PC)
 
 ```powershell
 cd H:\Dateien\Dokumente\Repos\StudioAI
-python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e .
+pip install -e ".[dev]"
+# Für Live-Captions:
+# pip install -e ".[vision]"
 
-# deploy/config.main-pc.yaml → worker_remote.url = Heimserver-LAN-IP
+# config.main-pc.yaml: worker_remote.url, bridge.token
 $env:STUDIO_AI_CORE_CONFIG = "$PWD\deploy\config.main-pc.yaml"
 studio-ai-core
 ```
 
-- Web-UI: `http://127.0.0.1:7860/` (oder LAN-IP des Haupt-PCs)
-- API-Docs: `http://127.0.0.1:7860/docs`
-- CLI: `studio-ai-chat --base http://127.0.0.1:7860`
+Heimserver: Worker wie Stufe 1/2 (`studio-ai-worker`).
 
-Firewall Haupt-PC (falls LAN-Chat von anderem Gerät): Port **7860**.
-
-## Role-Routing
-
-| Anfrage | Route |
-|---------|--------|
-| `/v1/chat` + persona `stheno` / `satyr` | `agent_chat` → Stheno / Satyr |
-| `/v1/structured` | `structured_json` → Qwen + GBNF |
-| Chat mit `model=qwen-technical` | **400** (Routing-Fehler) |
-
-Bei `max_loaded=1` swapped der Core automatisch das geladene Modell.
-
-## Offline-Verhalten
-
-Wenn der Worker down ist:
-
-- `GET /health` → `status=degraded`, `worker.online=false`
-- `POST /v1/chat` / `/v1/structured` → **503** mit `code: worker_offline`
-
-## Abnahme-Checkliste (Stufe 2) — PAUSE Test
-
-- [ ] Worker + Core laufen; Core `GET /health` zeigt `worker.online=true`
-- [ ] Web-UI oder CLI: Mehrturn-Chat mit Stheno
-- [ ] Persona-Wechsel auf Satyr (Modell-Swap, Chat funktioniert)
-- [ ] Structured-Probe: `.\scripts\smoke_stage2.ps1 -Structured` → valides JSON
-- [ ] Worker stoppen → Chat zeigt klaren Offline-Fehler (503 / UI-Hinweis)
-- [ ] Von anderem LAN-Gerät Core-UI öffnen (optional)
-
-Smoke:
+## Offline-Batch + FTS (ohne Studio)
 
 ```powershell
-.\scripts\smoke_stage2.ps1 -Chat -Persona stheno
-.\scripts\smoke_stage2.ps1 -Structured
+python scripts/generate_batch_fixtures.py --count 120
+studio-ai batch testdata\batch_poses --no-merge
+studio-ai search "kneeling from behind"
+python scripts/smoke_stage3.py --no-merge
 ```
 
-```bash
-./scripts/smoke_stage2.sh --chat --persona stheno
-./scripts/smoke_stage2.sh --structured
+Mit Qwen-Merge (Worker online, Qwen geladen/swap ok):
+
+```powershell
+studio-ai batch testdata\batch_poses
 ```
+
+## Live Capture (Studio + Bridge)
+
+1. StudioNeoV2 + StudioPoseBridge, Charakter in Szene, Pose applied  
+2. Token in `deploy/config.main-pc.yaml` → `bridge.token`  
+3. Core neu starten  
+
+```powershell
+studio-ai capture --character 0
+studio-ai describe --character 0          # braucht [vision] + Worker für Merge
+studio-ai describe --folder data\captures\<id> --no-joycaption   # nur Posecode+Merge/Fallback
+```
+
+Siehe `adapters/bridge/README.md`.
+
+## Abnahme-Checkliste — PAUSE Test
+
+- [ ] Posecode-Regeln: bekannte Compact-Fixtures → erwartete Tags  
+- [ ] Capture Front/3Q (Bridge): `pose_compact` nicht leer, PNGs da  
+- [ ] Describe (JoyCaption) für Front + Three-Quarter  
+- [ ] Einzel-Merge → valides `index_entry` JSON (oder Fallback dokumentiert)  
+- [ ] Batch ≥100 indexiert  
+- [ ] FTS: ≥10 vorbereitete Queries treffen erwartete Posen (`smoke_stage3.py`)
 
 ## Nächste Stufe
 
-Nach Test + Freigabe: **Stufe 3 – Capture + Describe** (Bridge, JoyCaption, Posecode, FTS).
+Nach Freigabe: **Stufe 4 – Scene-Feedback**.

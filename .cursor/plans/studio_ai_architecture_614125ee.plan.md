@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: stage-3-capture-describe
     content: "Stufe 3: Capture+Describe + regelbasiertes Posecode + Qwen GBNF Merge + Batch/FTS-CLI — dann PAUSE Test"
-    status: pending
+    status: completed
   - id: stage-4-scene-feedback
     content: "Stufe 4: Scene-Feedback visuell + instruction-Feld; Watch/OnDemand — dann PAUSE Test"
     status: pending
