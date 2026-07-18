@@ -1,0 +1,12 @@
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.csproj.AssemblyReference.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.AssemblyInfoInputs.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.AssemblyInfo.cs
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.csproj.CoreCompileInputs.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.sourcelink.json
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\bin\Release\StudioAi.Contracts.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\bin\Release\StudioAi.Contracts.pdb
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\bin\Release\Newtonsoft.Json.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.C6FBC68F.Up2Date
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\aicontracts\StudioAi.Contracts\obj\Release\StudioAi.Contracts.pdb

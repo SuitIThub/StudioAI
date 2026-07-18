@@ -1,0 +1,15 @@
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\StudioAi.Plugin.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\StudioAi.Plugin.pdb
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\Newtonsoft.Json.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\StudioAi.Contracts.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\StudioAi.Contracts.pdb
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.csproj.AssemblyReference.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\PluginInfo.cs
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.GeneratedMSBuildEditorConfig.editorconfig
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.AssemblyInfoInputs.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.AssemblyInfo.cs
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.csproj.CoreCompileInputs.cache
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.sourcelink.json
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.E966A518.Up2Date
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.dll
+H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.pdb

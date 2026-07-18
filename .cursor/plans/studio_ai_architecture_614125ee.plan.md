@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: stage-5a-pb-host
     content: "Stufe 5a: Contracts + headless Host + Search-Hook — dann PAUSE Test"
-    status: pending
+    status: completed
   - id: stage-5b-pb-ui
     content: "Stufe 5b: Chat-Panel + Index-UI + Agent-Tools + Overlay — dann PAUSE Test"
     status: pending

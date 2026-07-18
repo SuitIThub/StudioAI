@@ -1,0 +1,69 @@
+{
+  "format": 1,
+  "restore": {
+    "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {}
+  },
+  "projects": {
+    "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
+        "projectName": "StudioAi.Contracts",
+        "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
+        "packagesPath": "C:\\Users\\bigma\\.nuget\\packages\\",
+        "outputPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "H:\\Programme\\VisualStudio\\VisualStudioShared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bigma\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.bepinex.dev/v3/index.json": {},
+          "https://pkgs.dev.azure.com/IllusionMods/Nuget/_packaging/IllusionMods/nuget/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "targetAlias": "net472",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net472": {
+          "targetAlias": "net472",
+          "dependencies": {
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            },
+            "System.Net.Http": {
+              "target": "Package",
+              "version": "[4.3.4, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.316\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

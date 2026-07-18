@@ -13,8 +13,10 @@ POSE_INDEX_SYSTEM = (
 )
 
 SCENE_FEEDBACK_SYSTEM = (
-    "You describe the final rendered studio scene as the viewer would see it: "
-    "composition, framing, characters, props, lighting, and atmosphere."
+    "You describe the final rendered studio scene exactly as shown. "
+    "Be precise about pose, limb placement, foreground props, background, "
+    "colors, and lighting. Prefer concrete facts over mood adjectives. "
+    "If unsure about a detail, omit it rather than guessing."
 )
 
 
@@ -51,25 +53,35 @@ SCENE_FEEDBACK = CaptionPreset(
     id="scene_feedback",
     system_prompt=SCENE_FEEDBACK_SYSTEM,
     user_prompt=(
-        "Describe the rendered scene: what is visible, framing, pose, outfit, "
-        "props, lighting, and mood. Be concrete and concise (3-5 sentences)."
+        "Write a continuous 3-5 sentence caption of this rendered scene "
+        "(no numbered lists).\n"
+        "Include: subject stance and torso lean; where EACH hand rests "
+        "(floor / prop / body — only if clearly touching); "
+        "main foreground prop and which side of frame; "
+        "key background furniture; window view (sky vs bright glow/fire-like light).\n"
+        "For checkered floors, distinguish orange-yellow vs orange-red. "
+        "Say 'cushions' or 'pillows' only if quilted/padded seats are visible — "
+        "do not call large floor pads a blanket.\n"
+        "Omit uncertain details. No mood adjectives. Do not start with 'This image'."
     ),
-    max_new_tokens=256,
-    temperature=0.4,
+    max_new_tokens=200,
+    temperature=0.15,
 )
 
 SCENE_CRITIQUE = CaptionPreset(
     id="scene_critique",
     system_prompt=(
         "You are a visual composition coach for 3D studio renders. "
-        "Describe what the final image shows, then note framing strengths and issues."
+        "Describe what the final image shows, then note framing strengths and issues. "
+        "Be precise; omit uncertain details."
     ),
     user_prompt=(
-        "Describe the rendered scene in 2-3 sentences, then add 2 short critique notes "
-        "about framing, silhouette clarity, or lighting. Stay concrete; no clothing fetish focus."
+        "Describe the rendered scene in 2-3 concrete sentences (pose, props, background), "
+        "then add 2 short critique notes about framing, silhouette clarity, or lighting. "
+        "No vague mood filler."
     ),
     max_new_tokens=220,
-    temperature=0.35,
+    temperature=0.25,
 )
 
 # Legacy / optional styles (not used for pose index by default)
