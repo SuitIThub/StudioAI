@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
   title: StudioAI API
-  version: "0.3.0"
+  version: "0.4.0"
   description: |
-    Stage 3 – Core chat + capture/describe/index/search (SoT).
+    Stage 4 – Core chat + capture/describe/index/search + scene feedback.
     OpenAPI is the DTO source of truth (Decision B).
-  x-contract-version: "0.3.0"
+  x-contract-version: "0.4.0"
 servers:
   - url: http://127.0.0.1:7860
     description: Core (main PC)
@@ -227,6 +227,64 @@ paths:
         "404":
           description: Not found
 
+  /v1/scene-feedback/analyze:
+    post:
+      operationId: analyzeSceneFeedback
+      tags: [core]
+      summary: OnDemand scene feedback (Bridge PNG → JoyCaption → optional polish)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SceneFeedbackAnalyzeRequest"
+      responses:
+        "200":
+          description: Caption (+ optional polish); may return paused=true during index
+        "503":
+          description: JoyCaption or Bridge unavailable
+
+  /v1/scene-feedback/watch/start:
+    post:
+      operationId: startSceneFeedbackWatch
+      tags: [core]
+      summary: Start debounced Watch loop (pauses while indexing)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SceneFeedbackWatchRequest"
+      responses:
+        "200":
+          description: Watch started
+
+  /v1/scene-feedback/watch/stop:
+    post:
+      operationId: stopSceneFeedbackWatch
+      tags: [core]
+      responses:
+        "200":
+          description: Watch stopped
+
+  /v1/scene-feedback/status:
+    get:
+      operationId: getSceneFeedbackStatus
+      tags: [core]
+      responses:
+        "200":
+          description: Watch state + latest result + vision gate
+
+  /v1/scene-feedback/latest:
+    get:
+      operationId: getSceneFeedbackLatest
+      tags: [core]
+      responses:
+        "200":
+          description: Latest analyze/watch result
+        "404":
+          description: No result yet
+
   # --- Worker (thin) – Stage 1 surface, still used by Core ---
   /models:
     get:
@@ -438,3 +496,32 @@ components:
         stream: { type: boolean, default: false }
         grammar: { type: string, nullable: true }
         grammar_file: { type: string, nullable: true }
+
+    SceneFeedbackAnalyzeRequest:
+      type: object
+      required: [character_id]
+      properties:
+        character_id: { type: integer, default: 0 }
+        caption_preset: { type: string, nullable: true }
+        camera_source:
+          type: string
+          default: studio_active
+          description: studio_active (= Bridge angle current) | front_full | three_quarter
+        instruction: { type: string, nullable: true }
+        polish_with_chat: { type: boolean, nullable: true }
+        size: { type: integer, default: 768 }
+        image_path:
+          type: string
+          nullable: true
+          description: Offline PNG; skips Bridge capture
+    SceneFeedbackWatchRequest:
+      type: object
+      required: [character_id]
+      properties:
+        character_id: { type: integer, default: 0 }
+        caption_preset: { type: string, nullable: true }
+        camera_source: { type: string, default: studio_active }
+        instruction: { type: string, nullable: true }
+        polish_with_chat: { type: boolean, nullable: true }
+        size: { type: integer, default: 768 }
+        debounce_s: { type: number, nullable: true }

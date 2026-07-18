@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -12,10 +13,11 @@ from typing import Any
 from studio_ai_core.bridge import BridgeClient, BridgeError
 from studio_ai_core.indexing import INDEX_VERSION
 from studio_ai_core.indexing.cameras import CameraPolicy, resolve_views
-from studio_ai_core.indexing.joycaption import JoyCaptionClient
+from studio_ai_core.indexing.joycaption import INDEX_CAPTION_TYPE, JoyCaptionClient
 from studio_ai_core.indexing.merge import fallback_index_entry, merge_index_entry
 from studio_ai_core.indexing.posecode import derive_posecode
 from studio_ai_core.indexing.store import PoseIndexStore
+from studio_ai_core.vision_gate import VisionGate
 from studio_ai_core.worker_client import WorkerClient, WorkerOfflineError
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,9 @@ class IndexingService:
         capture_dir: Path,
         grammars_dir: Path | None = None,
         skip_merge: bool = False,
+        caption_preset: str = INDEX_CAPTION_TYPE,
+        joycaption_quant: str = "8bit",
+        vision_gate: VisionGate | None = None,
     ) -> None:
         self.store = store
         self.worker = worker
@@ -54,6 +59,14 @@ class IndexingService:
         self.capture_dir.mkdir(parents=True, exist_ok=True)
         self.grammars_dir = Path(grammars_dir) if grammars_dir else None
         self.skip_merge = skip_merge
+        self.caption_preset = caption_preset
+        self.joycaption_quant = joycaption_quant
+        self.vision_gate = vision_gate or VisionGate()
+
+    def _ensure_joycaption(self) -> None:
+        if not self.joycaption.loaded:
+            quant = self.joycaption_quant if self.joycaption_quant in ("bf16", "8bit", "nf4") else None
+            self.joycaption.load(quant=quant)  # type: ignore[arg-type]
 
     def derive_posecode_only(self, pose_compact: str) -> dict[str, Any]:
         result = derive_posecode(pose_compact)
@@ -115,19 +128,26 @@ class IndexingService:
         result["views"] = list((result.get("captures") or {}).keys())
         return result
 
-    def describe_images(
+    async def describe_images(
         self,
         captures: dict[str, str],
         *,
         caption_type: str | None = None,
         load_model: bool = True,
     ) -> dict[str, str]:
-        if load_model and not self.joycaption.loaded:
-            self.joycaption.load()
-        captions: dict[str, str] = {}
-        for view, path in captures.items():
-            captions[view] = self.joycaption.caption_path(path, caption_type=caption_type)
-        return captions
+        """Caption capture paths under the shared VisionGate (blocks Watch)."""
+
+        def _run() -> dict[str, str]:
+            if load_model:
+                self._ensure_joycaption()
+            preset = caption_type or self.caption_preset
+            out: dict[str, str] = {}
+            for view, path in captures.items():
+                out[view] = self.joycaption.caption_path(path, caption_type=preset)
+            return out
+
+        async with self.vision_gate.hold("index"):
+            return await asyncio.to_thread(_run)
 
     async def index_offline_folder(
         self,
@@ -162,11 +182,13 @@ class IndexingService:
                 captures[view] = str(png.resolve())
 
         if use_joycaption and captures:
-            for view, path in captures.items():
-                if view not in captions:
-                    if not self.joycaption.loaded:
-                        self.joycaption.load()
-                    captions[view] = self.joycaption.caption_path(path)
+            missing = {v: p for v, p in captures.items() if v not in captions}
+            if missing:
+                self.vision_gate.begin_index()
+                try:
+                    captions.update(await self.describe_images(missing))
+                finally:
+                    self.vision_gate.end_index()
 
         return await self._finalize_index(
             pose_id=pose_id or pose_id_from_path(folder),
@@ -193,11 +215,13 @@ class IndexingService:
         captures = {k: str(v) for k, v in (capture_result.get("captures") or {}).items()}
         caps = dict(captions or {})
         if use_joycaption:
-            for view, path in captures.items():
-                if view not in caps:
-                    if not self.joycaption.loaded:
-                        self.joycaption.load()
-                    caps[view] = self.joycaption.caption_path(path)
+            missing = {v: p for v, p in captures.items() if v not in caps}
+            if missing:
+                self.vision_gate.begin_index()
+                try:
+                    caps.update(await self.describe_images(missing))
+                finally:
+                    self.vision_gate.end_index()
         return await self._finalize_index(
             pose_id=pose_id
             or pose_id_from_path(capture_result.get("pose_path"))
@@ -283,16 +307,22 @@ class IndexingService:
             folders = folders[:limit]
         results = []
         errors = []
-        for folder in folders:
-            try:
-                results.append(
-                    await self.index_offline_folder(
-                        folder, use_joycaption=use_joycaption, use_merge=use_merge
+        if use_joycaption:
+            self.vision_gate.begin_index()
+        try:
+            for folder in folders:
+                try:
+                    results.append(
+                        await self.index_offline_folder(
+                            folder, use_joycaption=use_joycaption, use_merge=use_merge
+                        )
                     )
-                )
-            except Exception as exc:
-                logger.exception("batch failed for %s", folder)
-                errors.append({"folder": str(folder), "error": str(exc)})
+                except Exception as exc:
+                    logger.exception("batch failed for %s", folder)
+                    errors.append({"folder": str(folder), "error": str(exc)})
+        finally:
+            if use_joycaption:
+                self.vision_gate.end_index()
         return {
             "ok": len(errors) == 0,
             "indexed": len(results),

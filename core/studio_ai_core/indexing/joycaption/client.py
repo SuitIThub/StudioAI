@@ -7,16 +7,32 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
-from studio_ai_core.indexing.joycaption.presets import DEFAULT_SYSTEM_PROMPT, prompt_for
+from studio_ai_core.indexing.joycaption.presets import (
+    DEFAULT_SYSTEM_PROMPT,
+    get_preset,
+)
 
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "fancyfeast/llama-joycaption-beta-one-hf-llava"
 QuantMode = Literal["bf16", "8bit", "nf4"]
+# Downscale before VLM – large PNGs barely help pose captions but cost time
+DEFAULT_MAX_IMAGE_EDGE = 768
 
 
 class JoyCaptionUnavailable(RuntimeError):
     """Raised when vision extras are missing or model not loaded."""
+
+
+def _load_dotenv() -> None:
+    try:
+        from dotenv import load_dotenv
+
+        from studio_ai_core import REPO_ROOT
+
+        load_dotenv(REPO_ROOT / ".env", override=False)
+    except Exception:
+        pass
 
 
 class JoyCaptionClient:
@@ -44,30 +60,28 @@ class JoyCaptionClient:
         return torch, AutoProcessor, BitsAndBytesConfig, LlavaForConditionalGeneration
 
     def load(self, quant: QuantMode | None = None) -> str:
+        _load_dotenv()
         torch, AutoProcessor, BitsAndBytesConfig, LlavaForConditionalGeneration = self._import_torch()
+        if not torch.cuda.is_available():
+            raise JoyCaptionUnavailable(
+                "PyTorch has no CUDA (got CPU-only build). "
+                "RTX 50xx needs: pip install torch torchvision "
+                "--index-url https://download.pytorch.org/whl/cu128 "
+                f"(current: {getattr(torch, '__version__', '?')})"
+            )
         q: QuantMode = quant or recommended_quant()
         if self._model is not None and self.quant == q:
             return f"JoyCaption already loaded ({q})"
 
         self.unload()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda"
         token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
         hf_kwargs = {"token": token} if token else {}
 
+        logger.info("Loading JoyCaption (%s) on %s …", q, torch.cuda.get_device_name(0))
         self._processor = AutoProcessor.from_pretrained(MODEL_NAME, **hf_kwargs)
         if self._processor.tokenizer.pad_token is None:
             self._processor.tokenizer.pad_token = self._processor.tokenizer.eos_token
-
-        if self.device == "cpu":
-            self._model = LlavaForConditionalGeneration.from_pretrained(
-                MODEL_NAME,
-                torch_dtype=torch.float32,
-                low_cpu_mem_usage=True,
-                **hf_kwargs,
-            )
-            self._model.eval()
-            self.quant = q
-            return "JoyCaption loaded on CPU (slow)"
 
         if q == "bf16":
             self._model = LlavaForConditionalGeneration.from_pretrained(
@@ -103,8 +117,8 @@ class JoyCaptionClient:
 
         self._model.eval()
         self.quant = q
-        logger.info("JoyCaption loaded (%s) on %s", q, self.device)
-        return f"JoyCaption loaded ({q})"
+        logger.info("JoyCaption ready (%s) on %s", q, torch.cuda.get_device_name(0))
+        return f"JoyCaption loaded ({q}) on {torch.cuda.get_device_name(0)}"
 
     def unload(self) -> None:
         self._model = None
@@ -120,21 +134,39 @@ class JoyCaptionClient:
         except ImportError:
             pass
 
+    @staticmethod
+    def _resize(image: Any, max_edge: int = DEFAULT_MAX_IMAGE_EDGE) -> Any:
+        w, h = image.size
+        edge = max(w, h)
+        if edge <= max_edge:
+            return image
+        scale = max_edge / float(edge)
+        nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
+        return image.resize((nw, nh))
+
     def caption_path(
         self,
         image_path: Path | str,
         *,
         caption_type: str | None = None,
-        temperature: float = 0.6,
+        instruction: str | None = None,
+        temperature: float | None = None,
         top_p: float = 0.9,
-        max_new_tokens: int = 384,
+        max_new_tokens: int | None = None,
+        max_image_edge: int = DEFAULT_MAX_IMAGE_EDGE,
     ) -> str:
         from PIL import Image
 
         img = Image.open(image_path).convert("RGB")
+        img = self._resize(img, max_image_edge)
+        preset = get_preset(caption_type)
+        prompt = preset.user_prompt
+        if instruction and instruction.strip():
+            prompt = f"{prompt.rstrip()}\n\nAdditional instruction: {instruction.strip()}"
         return self.caption_image(
             img,
             caption_type=caption_type,
+            prompt=prompt,
             temperature=temperature,
             top_p=top_p,
             max_new_tokens=max_new_tokens,
@@ -146,20 +178,25 @@ class JoyCaptionClient:
         *,
         caption_type: str | None = None,
         prompt: str | None = None,
-        temperature: float = 0.6,
+        temperature: float | None = None,
         top_p: float = 0.9,
-        max_new_tokens: int = 384,
-        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+        max_new_tokens: int | None = None,
+        system_prompt: str | None = None,
     ) -> str:
         import torch
 
         if self._model is None or self._processor is None:
             raise JoyCaptionUnavailable("JoyCaption is not loaded. Call load() first.")
 
-        text_prompt = prompt or prompt_for(caption_type)
+        preset = get_preset(caption_type)
+        text_prompt = prompt or preset.user_prompt
+        sys_prompt = system_prompt or preset.system_prompt
+        temp = preset.temperature if temperature is None else temperature
+        tokens = preset.max_new_tokens if max_new_tokens is None else max_new_tokens
+
         image = image.convert("RGB")
         convo = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": sys_prompt or DEFAULT_SYSTEM_PROMPT},
             {"role": "user", "content": text_prompt.strip()},
         ]
         convo_string = self._processor.apply_chat_template(
@@ -173,13 +210,13 @@ class JoyCaptionClient:
         with torch.no_grad():
             generate_ids = self._model.generate(
                 **inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=temperature > 0,
+                max_new_tokens=tokens,
+                do_sample=temp > 0,
                 suppress_tokens=None,
                 use_cache=True,
-                temperature=temperature if temperature > 0 else None,
+                temperature=temp if temp > 0 else None,
                 top_k=None,
-                top_p=top_p if temperature > 0 else None,
+                top_p=top_p if temp > 0 else None,
             )[0]
 
         generate_ids = generate_ids[inputs["input_ids"].shape[1] :]

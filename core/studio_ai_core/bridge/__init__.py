@@ -63,8 +63,22 @@ class BridgeClient:
         chars = (payload or {}).get("characters") or data.get("characters") or []
         return chars if isinstance(chars, list) else []
 
-    async def get_pose(self, character_id: int, *, regions: str | None = None) -> dict[str, Any]:
-        q = f"?regions={regions}" if regions else ""
+    async def get_pose(
+        self,
+        character_id: int,
+        *,
+        regions: str | None = None,
+        bones: str | None = None,
+        space: str = "local",
+    ) -> dict[str, Any]:
+        params: list[str] = []
+        if regions:
+            params.append(f"regions={regions}")
+        if bones:
+            params.append(f"bones={bones}")
+        if space:
+            params.append(f"space={space}")
+        q = ("?" + "&".join(params)) if params else ""
         data = await self._json("GET", f"/v1/characters/{character_id}/pose{q}")
         payload = data.get("data") if isinstance(data.get("data"), dict) else data
         return payload or data
@@ -118,7 +132,7 @@ class BridgeClient:
         pose_path: str | None = None,
         size: int = 512,
         framing: str = "full_body",
-        regions: str = "torso,left_arm,right_arm,left_leg,right_leg",
+        regions: str = "torso,hips,left_arm,right_arm,left_leg,right_leg",
     ) -> dict[str, Any]:
         """
         Prefer composite Bridge endpoint if present; else capture-only using current pose.
@@ -159,6 +173,7 @@ class BridgeClient:
             "character_id": character_id,
             "pose_path": pose_path,
             "pose_compact": pose_compact,
+            "pose_root": pose.get("root"),
             "captures": captures,
             "applied": False,
             "mode": "capture_only",

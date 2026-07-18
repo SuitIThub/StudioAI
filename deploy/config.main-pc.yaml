@@ -1,4 +1,4 @@
-# StudioAI Core (primary) on the Studio / main PC – Stage 3
+# StudioAI Core (primary) on the Studio / main PC – Stage 4
 # Start: STUDIO_AI_CORE_CONFIG=.../config.main-pc.yaml studio-ai-core
 
 node:
@@ -27,8 +27,15 @@ indexing:
   db_path: "../data/pose_index.sqlite"
   capture_dir: "../data/captures"
   joycaption_quant: "8bit"   # 8bit recommended for 16GB VRAM
+  # pose_index = body pose only | scene_feedback = full scene (Stufe 4)
+  caption_preset: pose_index
   cameras:
     always: [front, three_quarter]
     optional: [one_quarter]
     one_quarter_mode: auto    # auto | always | off
     one_quarter_angle: "45"   # numeric Bridge angle until one_quarter preset exists
+
+scene_feedback:
+  caption_preset: scene_feedback   # scene_feedback | scene_critique | Versaut (NSFW)
+  debounce_s: 12                   # Watch interval (min 5)
+  polish_with_chat: true          # optional Stheno tips after JoyCaption

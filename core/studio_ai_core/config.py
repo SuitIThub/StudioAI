@@ -37,8 +37,14 @@ class CoreSettings(BaseSettings):
     index_db_path: Path = REPO_ROOT / "data" / "pose_index.sqlite"
     capture_dir: Path = REPO_ROOT / "data" / "captures"
     joycaption_quant: str = "8bit"
+    caption_preset: str = "pose_index"
     one_quarter_mode: str = "auto"
     one_quarter_angle: str = "45"
+
+    # Stage 4 – scene feedback
+    feedback_preset: str = "scene_feedback"
+    feedback_debounce_s: float = 12.0
+    feedback_polish: bool = False
 
 
 def load_yaml_file(path: Path) -> dict[str, Any]:
@@ -86,6 +92,7 @@ def settings_from_config(config_path: Path | None = None) -> CoreSettings:
     bridge = raw.get("bridge") or {}
     indexing = raw.get("indexing") or {}
     cameras = indexing.get("cameras") or {}
+    feedback = raw.get("scene_feedback") or {}
 
     base = path.parent if path.is_file() else REPO_ROOT
 
@@ -115,8 +122,12 @@ def settings_from_config(config_path: Path | None = None) -> CoreSettings:
         index_db_path=db_path,
         capture_dir=capture_dir,
         joycaption_quant=str(indexing.get("joycaption_quant", "8bit")),
+        caption_preset=str(indexing.get("caption_preset", "pose_index")),
         one_quarter_mode=str(cameras.get("one_quarter_mode", "auto")),
         one_quarter_angle=str(cameras.get("one_quarter_angle", "45")),
+        feedback_preset=str(feedback.get("caption_preset", "scene_feedback")),
+        feedback_debounce_s=float(feedback.get("debounce_s", 12.0)),
+        feedback_polish=bool(feedback.get("polish_with_chat", False)),
     )
 
 

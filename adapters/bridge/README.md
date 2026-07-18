@@ -3,14 +3,41 @@
 # Core talks to the existing **StudioPoseBridge** BepInEx plugin over HTTP.
 # Business logic (posecode, JoyCaption, merge, FTS) stays in Core.
 
-## What Core uses today (no plugin rebuild required)
+## What Core uses today
 
 | Call | Bridge endpoint |
 |------|-----------------|
 | Health | `GET /v1/health` |
 | Characters | `GET /v1/characters` |
-| Pose → `pose_compact` | `GET /v1/characters/{id}/pose` (Core formats compact text) |
-| Screenshots | `GET /v1/characters/{id}/screenshot?angle=…` |
+| Pose → `pose_compact` | `GET /v1/characters/{id}/pose?regions=…` (+ always `root`) |
+| Screenshots (Index) | `GET /v1/characters/{id}/screenshot?angle=front\|three_quarter\|…` |
+| Screenshots (Scene Feedback) | `GET /v1/characters/{id}/screenshot?angle=current` (= aktive Studio-Kamera / `Camera.main`) |
+
+### Pose query: regions vs arbitrary bones
+
+**Regions** are named bone groups (`torso`, `hips`, `left_arm`, …). Core requests:
+
+`regions=torso,hips,left_arm,right_arm,left_leg,right_leg`
+
+**Extra FK bones by name** (any bone the rig exposes):
+
+`GET /v1/characters/{id}/pose?bones=cf_J_Neck,cf_J_Hand_L`
+
+Those land in `regions.extra`. Writes already accepted arbitrary bone names; reads now can too.
+
+**Character root / Studio guide** is *not* an FK bone. Bridge always appends a `root` object when available:
+
+```json
+"root": {
+  "guide_rot_euler": [x, y, z],
+  "world_rot_euler": [x, y, z],
+  "world_pos": [x, y, z]
+}
+```
+
+Core flattens that into `pose_compact` as `char_guide:` / `char_root:` so posecode can detect all-fours / prone from whole-character pitch.
+
+**Requires rebuilt StudioPoseBridge** with `AppendRootTransforms` + `bones=` query support. Rebuild the plugin DLL and reload Studio / BepInEx.
 
 Views:
 - `front` → `angle=front`

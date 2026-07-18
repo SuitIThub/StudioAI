@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 
 _LINE_EULER = re.compile(
@@ -46,10 +47,28 @@ def parse_pose_compact(text: str) -> dict[str, BoneEuler]:
     return out
 
 
+def _euler_line(name: str, reuler: list[Any]) -> str | None:
+    if not isinstance(reuler, list) or len(reuler) < 3:
+        return None
+    return f"{name}: {reuler[0]},{reuler[1]},{reuler[2]}"
+
+
 def format_pose_compact_from_regions(pose_data: dict) -> str:
-    """Flatten Bridge pose JSON regions to compact text (same as MCP formatter)."""
-    regions = pose_data.get("regions") or {}
+    """Flatten Bridge pose JSON (regions + optional root) to compact text."""
     lines: list[str] = []
+
+    root = pose_data.get("root")
+    if isinstance(root, dict):
+        # Prefer guide (Studio object placement), fall back to ChaControl world
+        for key, alias in (
+            ("guide_rot_euler", "char_guide"),
+            ("world_rot_euler", "char_root"),
+        ):
+            line = _euler_line(alias, root.get(key) or [])
+            if line:
+                lines.append(line)
+
+    regions = pose_data.get("regions") or {}
     for _name, bones in regions.items():
         if not isinstance(bones, list):
             continue

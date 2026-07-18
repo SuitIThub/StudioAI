@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StudioAI · Scene Feedback</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .fb-grid { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; padding: 1.25rem; }
+    .fb-panel { display: flex; flex-direction: column; gap: 0.75rem; }
+    .fb-panel label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
+    .fb-panel input, .fb-panel select, .fb-panel textarea {
+      font: inherit; padding: 0.45rem 0.55rem; border-radius: 6px;
+      border: 1px solid #c5d0c8; background: #fff;
+    }
+    .fb-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .fb-actions button { cursor: pointer; padding: 0.5rem 0.85rem; border-radius: 6px; border: 0; background: #2f5d4a; color: #fff; }
+    .fb-actions button.ghost { background: transparent; color: #2f5d4a; border: 1px solid #2f5d4a; }
+    .fb-result { white-space: pre-wrap; background: #f4f7f5; border-radius: 8px; padding: 1rem; min-height: 8rem; }
+    .fb-preview { max-width: 100%; border-radius: 8px; background: #1a1f1c; }
+    .nav a { margin-right: 1rem; color: inherit; }
+    @media (max-width: 800px) { .fb-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">StudioAI</span>
+        <span class="brand-sub">Scene Feedback · Stufe 4</span>
+      </div>
+      <nav class="nav">
+        <a href="/">Chat</a>
+        <a href="/feedback">Feedback</a>
+      </nav>
+      <div class="status" id="status">Prüfe Verbindung…</div>
+    </header>
+
+    <div class="fb-grid">
+      <aside class="fb-panel">
+        <label>
+          <span>Character ID</span>
+          <input id="character" type="number" value="0" min="0" />
+        </label>
+        <label>
+          <span>Camera</span>
+          <select id="camera">
+            <option value="studio_active">studio_active (Studio-Kamera)</option>
+            <option value="front_full">front_full</option>
+            <option value="three_quarter">three_quarter</option>
+          </select>
+        </label>
+        <label>
+          <span>Preset</span>
+          <select id="preset">
+            <option value="scene_feedback">scene_feedback</option>
+            <option value="scene_critique">scene_critique</option>
+            <option value="Versaut (NSFW)">Versaut (NSFW)</option>
+          </select>
+        </label>
+        <label>
+          <span>Instruction (optional)</span>
+          <textarea id="instruction" rows="3" placeholder="z.B. Achte besonders auf Framing und Silhouette"></textarea>
+        </label>
+        <label>
+          <span><input id="polish" type="checkbox" /> Polish mit Stheno</span>
+        </label>
+        <label>
+          <span>Watch Debounce (s)</span>
+          <input id="debounce" type="number" value="12" min="5" step="1" />
+        </label>
+        <div class="fb-actions">
+          <button type="button" id="btnAnalyze">Szene analysieren</button>
+          <button type="button" id="btnWatch" class="ghost">Watch starten</button>
+          <button type="button" id="btnStop" class="ghost">Watch stop</button>
+          <button type="button" id="btnRefresh" class="ghost">Status</button>
+        </div>
+        <p class="hint" id="hint">OnDemand nutzt Bridge angle=current (aktive Studio-Kamera). Kein Metadata-Fake.</p>
+      </aside>
+
+      <main class="fb-panel">
+        <img id="preview" class="fb-preview" alt="" hidden />
+        <div id="result" class="fb-result">Noch kein Ergebnis.</div>
+      </main>
+    </div>
+  </div>
+  <script src="/static/feedback.js"></script>
+</body>
+</html>

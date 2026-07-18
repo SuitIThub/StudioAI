@@ -1,6 +1,7 @@
-# StudioAI – Stage 3: Capture + Describe + FTS Index
+# StudioAI – Stage 4: Scene Feedback (+ Stage 3 Index)
 
-**Stufe 3** indexiert Posen suchtauglich: Bridge-Capture → regelbasiertes Posecode → JoyCaption → Qwen+GBNF-Merge → SQLite/FTS.
+**Stufe 4** bewertet das **gerenderte Studio-Bild** (aktive Kamera) mit JoyCaption.
+Posecode/Metadaten werden dafür **nicht** als Caption-Ersatz benutzt.
 
 | Komponente | Host | Port |
 |------------|------|------|
@@ -8,74 +9,49 @@
 | Worker | Heimserver | 7850 |
 | StudioPoseBridge | Haupt-PC (Studio) | 7842 |
 
-**Nicht in Stufe 3:** Scene-Feedback-Watch, PoseBrowser-AI-UI.
+**Contract:** `0.4.0`
 
-## Neu in Stufe 3
+## Neu in Stufe 4
 
 | Pfad / Befehl | Rolle |
 |---------------|--------|
-| `core/.../indexing/posecode` | Regeln: `pose_compact` → tags/text |
-| `core/.../indexing/joycaption` | JoyCaption-Client (`pip install -e ".[vision]"`) |
-| `core/.../indexing/merge` + `deploy/grammars/index_entry.gbnf` | Qwen-Merge |
-| `core/.../indexing/store` | SQLite + FTS5 |
-| `core/.../bridge` | HTTP-Client zu StudioPoseBridge |
-| `studio-ai search/posecode/capture/describe/batch` | CLI |
-| `POST /v1/capture`, `/v1/describe`, `/v1/search`, … | Core-API |
+| `core/.../scene_feedback/` | OnDemand + Watch + optional Stheno-Polish |
+| `core/.../vision_gate.py` | JoyCaption exklusiv: Index vs Feedback |
+| `POST /v1/scene-feedback/analyze` | Einmal-Analyse |
+| `POST /v1/scene-feedback/watch/start\|stop` | Debounced Watch |
+| `GET /v1/scene-feedback/status\|latest` | Status / letztes Ergebnis |
+| `studio-ai feedback …` | CLI |
+| `http://127.0.0.1:7860/feedback` | Web-Panel |
+| Bridge `angle=current` | `camera_source=studio_active` |
 
-## Setup (Haupt-PC)
+Presets: `scene_feedback`, `scene_critique`, `Versaut (NSFW)`.
+
+## Setup (kurz)
 
 ```powershell
 cd H:\Dateien\Dokumente\Repos\StudioAI
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-# Für Live-Captions:
-# pip install -e ".[vision]"
-
-# config.main-pc.yaml: worker_remote.url, bridge.token
 $env:STUDIO_AI_CORE_CONFIG = "$PWD\deploy\config.main-pc.yaml"
+# Vision einmalig (falls noch nicht):
+.\scripts\setup_vision.ps1
 studio-ai-core
 ```
 
-Heimserver: Worker wie Stufe 1/2 (`studio-ai-worker`).
+Heimserver: `studio-ai-worker` wie bisher. Studio + StudioPoseBridge laufen lassen.
 
-## Offline-Batch + FTS (ohne Studio)
-
-```powershell
-python scripts/generate_batch_fixtures.py --count 120
-studio-ai batch testdata\batch_poses --no-merge
-studio-ai search "kneeling from behind"
-python scripts/smoke_stage3.py --no-merge
-```
-
-Mit Qwen-Merge (Worker online, Qwen geladen/swap ok):
-
-```powershell
-studio-ai batch testdata\batch_poses
-```
-
-## Live Capture (Studio + Bridge)
-
-1. StudioNeoV2 + StudioPoseBridge, Charakter in Szene, Pose applied  
-2. Token in `deploy/config.main-pc.yaml` → `bridge.token`  
-3. Core neu starten  
-
-```powershell
-studio-ai capture --character 0
-studio-ai describe --character 0          # braucht [vision] + Worker für Merge
-studio-ai describe --folder data\captures\<id> --no-joycaption   # nur Posecode+Merge/Fallback
-```
-
-Siehe `adapters/bridge/README.md`.
+Config: `deploy/config.main-pc.yaml` → Abschnitt `scene_feedback`.
 
 ## Abnahme-Checkliste — PAUSE Test
 
-- [ ] Posecode-Regeln: bekannte Compact-Fixtures → erwartete Tags  
-- [ ] Capture Front/3Q (Bridge): `pose_compact` nicht leer, PNGs da  
-- [ ] Describe (JoyCaption) für Front + Three-Quarter  
-- [ ] Einzel-Merge → valides `index_entry` JSON (oder Fallback dokumentiert)  
-- [ ] Batch ≥100 indexiert  
-- [ ] FTS: ≥10 vorbereitete Queries treffen erwartete Posen (`smoke_stage3.py`)
+Siehe detaillierten Testplan unten (kleinteilige Befehle).
+
+- [ ] OnDemand = Caption eines echten Bridge-PNGs (`studio_active` → `angle=current`)
+- [ ] `instruction` landet im JoyCaption-Prompt
+- [ ] Watch debounced (≥5 s, Default 12)
+- [ ] Watch pausiert während Index (`vision.indexing`)
+- [ ] Kein Metadata-/Posecode-Fake als Caption
+- [ ] Optional: Polish mit Stheno (Worker online)
 
 ## Nächste Stufe
 
-Nach Freigabe: **Stufe 4 – Scene-Feedback**.
+Nach Freigabe: **Stufe 5a – Contracts + Host + Search-Hook**.

@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: stage-4-scene-feedback
     content: "Stufe 4: Scene-Feedback visuell + instruction-Feld; Watch/OnDemand — dann PAUSE Test"
-    status: pending
+    status: completed
   - id: stage-5a-pb-host
     content: "Stufe 5a: Contracts + headless Host + Search-Hook — dann PAUSE Test"
     status: pending

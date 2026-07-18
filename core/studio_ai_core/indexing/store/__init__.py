@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,45 @@ from pathlib import Path
 from typing import Any
 
 from studio_ai_core.indexing import INDEX_VERSION
+
+# Words that break AND-queries when absent from short index text ("kneeling from behind")
+_FTS_STOP = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "of",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "from",
+        "with",
+        "by",
+        "her",
+        "his",
+        "their",
+        "a",
+        "is",
+        "are",
+        "be",
+        "as",
+    }
+)
+_TOKEN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_\-]*")
+
+
+def _fts_match_query(raw: str) -> str:
+    """Build an FTS5 MATCH string: drop stopwords, AND remaining terms."""
+    tokens = [t.lower() for t in _TOKEN.findall(raw or "")]
+    keep = [t for t in tokens if t not in _FTS_STOP]
+    if not keep:
+        keep = tokens
+    # Quote tokens so hyphens / underscores stay literal
+    return " ".join(f'"{t}"' if any(c in t for c in "_-") else t for t in keep)
 
 
 def _utc_now() -> str:
@@ -63,10 +103,56 @@ class PoseIndexStore:
               tags,
               synonyms,
               posecode_text,
+              captions,
               tokenize = 'porter unicode61'
             );
             """
         )
+        self._conn.commit()
+        self._ensure_fts_captions_column()
+
+    def _ensure_fts_captions_column(self) -> None:
+        """Older DBs may lack captions in FTS; rebuild virtual table if needed."""
+        row = self._conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='poses_fts'"
+        ).fetchone()
+        sql = (row["sql"] if row else "") or ""
+        if "captions" in sql:
+            return
+        cur = self._conn.cursor()
+        cur.executescript(
+            """
+            DROP TABLE IF EXISTS poses_fts;
+            CREATE VIRTUAL TABLE poses_fts USING fts5(
+              pose_id UNINDEXED,
+              description,
+              tags,
+              synonyms,
+              posecode_text,
+              captions,
+              tokenize = 'porter unicode61'
+            );
+            """
+        )
+        # Reindex existing rows
+        for r in self._conn.execute("SELECT * FROM poses").fetchall():
+            caps = json.loads(r["captions_json"] or "{}")
+            caption_blob = " ".join(str(v) for v in caps.values() if v)
+            cur.execute(
+                """
+                INSERT INTO poses_fts (
+                  pose_id, description, tags, synonyms, posecode_text, captions
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    r["pose_id"],
+                    r["description"] or "",
+                    " ".join(json.loads(r["tags_json"] or "[]")),
+                    " ".join(json.loads(r["synonyms_json"] or "[]")),
+                    r["posecode_text"] or "",
+                    caption_blob,
+                ),
+            )
         self._conn.commit()
 
     def upsert(
@@ -129,10 +215,13 @@ class PoseIndexStore:
             ),
         )
         cur.execute("DELETE FROM poses_fts WHERE pose_id = ?", (pose_id,))
+        caption_blob = " ".join(str(v) for v in (captions or {}).values() if v)
         cur.execute(
             """
-            INSERT INTO poses_fts (pose_id, description, tags, synonyms, posecode_text)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO poses_fts (
+              pose_id, description, tags, synonyms, posecode_text, captions
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 pose_id,
@@ -140,6 +229,7 @@ class PoseIndexStore:
                 " ".join(tags),
                 " ".join(synonyms),
                 posecode_text or "",
+                caption_blob,
             ),
         )
         self._conn.commit()
@@ -158,6 +248,7 @@ class PoseIndexStore:
         q = (query or "").strip()
         if not q:
             return []
+        match_q = _fts_match_query(q)
         # Prefer FTS MATCH; fall back to LIKE if query has FTS syntax issues
         try:
             rows = self._conn.execute(
@@ -171,7 +262,7 @@ class PoseIndexStore:
                 ORDER BY score
                 LIMIT ?
                 """,
-                (q, limit),
+                (match_q, limit),
             ).fetchall()
         except sqlite3.OperationalError:
             like = f"%{q}%"
@@ -180,9 +271,10 @@ class PoseIndexStore:
                 SELECT pose_id, path, description, tags_json, 0.0 AS score, description AS snip
                 FROM poses
                 WHERE description LIKE ? OR tags_json LIKE ? OR posecode_text LIKE ?
+                   OR captions_json LIKE ?
                 LIMIT ?
                 """,
-                (like, like, like, limit),
+                (like, like, like, like, limit),
             ).fetchall()
 
         hits: list[SearchHit] = []

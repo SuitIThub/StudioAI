@@ -1,4 +1,4 @@
-"""StudioAI Core FastAPI – Stage 3 chat + indexing."""
+"""StudioAI Core FastAPI – Stage 4 chat + indexing + scene feedback."""
 
 from __future__ import annotations
 
@@ -18,11 +18,13 @@ from studio_ai_core.bridge import BridgeClient, BridgeError, BridgeOfflineError
 from studio_ai_core.chat_service import ChatService
 from studio_ai_core.config import camera_policy_from_settings, settings_from_config
 from studio_ai_core.indexing import INDEX_VERSION
-from studio_ai_core.indexing.joycaption import JoyCaptionUnavailable
+from studio_ai_core.indexing.joycaption import JoyCaptionClient, JoyCaptionUnavailable
 from studio_ai_core.indexing.pipeline import IndexingService
 from studio_ai_core.indexing.store import PoseIndexStore
 from studio_ai_core.profiles import DEFAULT_PROFILES
 from studio_ai_core.routing import RoutingError
+from studio_ai_core.scene_feedback import SceneFeedbackService
+from studio_ai_core.vision_gate import VisionGate
 from studio_ai_core.worker_client import WorkerApiError, WorkerClient, WorkerOfflineError
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,9 @@ chat_service: ChatService
 store: PoseIndexStore
 indexing: IndexingService
 bridge: BridgeClient
+vision_gate: VisionGate
+scene_feedback: SceneFeedbackService
+joycaption: JoyCaptionClient
 
 
 class ChatMessage(BaseModel):
@@ -99,9 +104,30 @@ class SearchRequest(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
 
 
+class SceneFeedbackAnalyzeRequest(BaseModel):
+    character_id: int = 0
+    caption_preset: str | None = None
+    camera_source: str = "studio_active"
+    instruction: str | None = None
+    polish_with_chat: bool | None = None
+    size: int = 768
+    image_path: str | None = None
+
+
+class SceneFeedbackWatchRequest(BaseModel):
+    character_id: int = 0
+    caption_preset: str | None = None
+    camera_source: str = "studio_active"
+    instruction: str | None = None
+    polish_with_chat: bool | None = None
+    size: int = 768
+    debounce_s: float | None = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global settings, worker, chat_service, store, indexing, bridge
+    global vision_gate, scene_feedback, joycaption
     settings = settings_from_config()
     worker = WorkerClient(
         settings.worker_url,
@@ -116,13 +142,30 @@ async def lifespan(app: FastAPI):
     )
     store = PoseIndexStore(settings.index_db_path)
     bridge = BridgeClient(settings.bridge_url, token=settings.bridge_token)
+    vision_gate = VisionGate()
+    joycaption = JoyCaptionClient()
     indexing = IndexingService(
         store=store,
         worker=worker,
         bridge=bridge,
+        joycaption=joycaption,
         camera_policy=camera_policy_from_settings(settings),
         capture_dir=settings.capture_dir,
         grammars_dir=settings.grammars_dir,
+        caption_preset=settings.caption_preset,
+        joycaption_quant=settings.joycaption_quant,
+        vision_gate=vision_gate,
+    )
+    scene_feedback = SceneFeedbackService(
+        bridge=bridge,
+        joycaption=joycaption,
+        vision_gate=vision_gate,
+        chat=chat_service,
+        capture_dir=settings.capture_dir,
+        joycaption_quant=settings.joycaption_quant,
+        default_preset=settings.feedback_preset,
+        default_debounce_s=settings.feedback_debounce_s,
+        default_polish=settings.feedback_polish,
     )
     logger.info(
         "Core started (contract=%s, index=%s, worker=%s, bridge=%s)",
@@ -132,6 +175,7 @@ async def lifespan(app: FastAPI):
         settings.bridge_url,
     )
     yield
+    await scene_feedback.watch_stop()
     store.close()
     logger.info("Core stopped")
 
@@ -178,6 +222,13 @@ async def health() -> dict[str, Any]:
         "worker": {"url": settings.worker_url, "online": worker_ok, "health": wh},
         "bridge": {"url": settings.bridge_url, "online": bridge_ok, "health": bh},
         "index": {"db": str(settings.index_db_path), "count": store.count()},
+        "vision": vision_gate.status(),
+        "scene_feedback": {
+            "watch_running": bool(
+                scene_feedback._watch_task and not scene_feedback._watch_task.done()
+            ),
+            "analyze_count": scene_feedback._analyze_count,
+        },
         "detail": None if worker_ok else "Heimserver worker offline – chat/merge unavailable",
     }
 
@@ -386,12 +437,83 @@ def get_pose(pose_id: str) -> dict[str, Any]:
     return row
 
 
+@app.post("/v1/scene-feedback/analyze")
+async def scene_feedback_analyze(body: SceneFeedbackAnalyzeRequest) -> dict[str, Any]:
+    try:
+        return await scene_feedback.analyze(
+            character_id=body.character_id,
+            caption_preset=body.caption_preset,
+            camera_source=body.camera_source,
+            instruction=body.instruction,
+            polish_with_chat=body.polish_with_chat,
+            size=body.size,
+            image_path=body.image_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "bad_request", "message": str(exc)}) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": str(exc)}) from exc
+    except JoyCaptionUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "joycaption_unavailable", "message": str(exc)},
+        ) from exc
+    except BridgeOfflineError as exc:
+        raise _bridge_http(exc) from exc
+    except BridgeError as exc:
+        raise _bridge_http(exc) from exc
+
+
+@app.post("/v1/scene-feedback/watch/start")
+async def scene_feedback_watch_start(body: SceneFeedbackWatchRequest) -> dict[str, Any]:
+    try:
+        return await scene_feedback.watch_start(
+            character_id=body.character_id,
+            caption_preset=body.caption_preset,
+            camera_source=body.camera_source,
+            instruction=body.instruction,
+            polish_with_chat=body.polish_with_chat,
+            size=body.size,
+            debounce_s=body.debounce_s,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "bad_request", "message": str(exc)}) from exc
+
+
+@app.post("/v1/scene-feedback/watch/stop")
+async def scene_feedback_watch_stop() -> dict[str, Any]:
+    return await scene_feedback.watch_stop()
+
+
+@app.get("/v1/scene-feedback/status")
+def scene_feedback_status() -> dict[str, Any]:
+    return scene_feedback.status()
+
+
+@app.get("/v1/scene-feedback/latest")
+def scene_feedback_latest() -> dict[str, Any]:
+    if scene_feedback.latest is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "not_found", "message": "no feedback result yet"},
+        )
+    return scene_feedback.latest
+
+
 @app.get("/")
 def index() -> FileResponse:
     index_path = STATIC_DIR / "index.html"
     if not index_path.is_file():
         raise HTTPException(status_code=404, detail="Chat UI not found")
     return FileResponse(index_path)
+
+
+@app.get("/feedback")
+def feedback_page() -> FileResponse:
+    path = STATIC_DIR / "feedback.html"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Feedback UI not found")
+    return FileResponse(path)
 
 
 if STATIC_DIR.is_dir():
