@@ -7,7 +7,7 @@ info:
     OpenAPI is the DTO source of truth (Decision B).
   x-contract-version: "0.4.0"
 servers:
-  - url: http://127.0.0.1:7860
+  - url: http://127.0.0.1:7200
     description: Core (main PC)
   - url: http://127.0.0.1:7850
     description: Worker (Heimserver)
@@ -193,6 +193,48 @@ paths:
       responses:
         "200":
           description: Batch result
+
+  /v1/index/paths:
+    post:
+      operationId: indexPaths
+      tags: [core]
+      summary: Index explicit pose file/folder paths (PoseBrowser selection)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paths]
+              properties:
+                paths:
+                  type: array
+                  items: { type: string }
+                character_id: { type: integer, default: 0 }
+                use_joycaption: { type: boolean, default: true }
+                use_merge: { type: boolean, default: true }
+                size: { type: integer, default: 512 }
+                allow_stub: { type: boolean, default: false }
+      responses:
+        "200":
+          description: OK
+
+  /v1/index/clear:
+    post:
+      operationId: clearIndex
+      tags: [core]
+      summary: Delete all pose index rows (SQLite + FTS)
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  deleted: { type: integer }
+                  total_in_store: { type: integer }
 
   /v1/search:
     post:

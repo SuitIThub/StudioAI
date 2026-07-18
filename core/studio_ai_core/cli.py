@@ -8,6 +8,8 @@ import sys
 
 import httpx
 
+from studio_ai_core.core_ports import resolve_core_base_url
+
 
 def _print_help() -> None:
     print(
@@ -22,12 +24,21 @@ def _print_help() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="StudioAI Core chat CLI (Stage 2)")
-    parser.add_argument("--base", default="http://127.0.0.1:7860", help="Core base URL")
+    parser.add_argument(
+        "--base",
+        default="http://127.0.0.1:7200",
+        help="Core base URL, or 'auto' to discover/lock on 7200–7299",
+    )
     parser.add_argument("--persona", default="stheno")
     parser.add_argument("--no-stream", action="store_true")
     args = parser.parse_args(argv)
 
-    base = args.base.rstrip("/")
+    try:
+        base = resolve_core_base_url(args.base)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
     persona = args.persona
     history: list[dict[str, str]] = []
 

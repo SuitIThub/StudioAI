@@ -13,3 +13,4 @@ H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\
 H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.E966A518.Up2Date
 H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.dll
 H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\obj\Release\StudioAi.Plugin.pdb
+h:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\bin\Release\chat-icon.png

@@ -4,21 +4,36 @@
     <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
     <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\bigma\.nuget\packages\;H:\Programme\VisualStudio\VisualStudioShared\NuGetPackages</NuGetPackageFolders>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget;H:\Programme\VisualStudio\VisualStudioShared\NuGetPackages</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
     <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.14.3</NuGetToolVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <SourceRoot Include="C:\Users\bigma\.nuget\packages\" />
+    <SourceRoot Include="C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\" />
     <SourceRoot Include="H:\Programme\VisualStudio\VisualStudioShared\NuGetPackages\" />
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)bepinex.plugininfoprops\1.1.0\build\BepInEx.PluginInfoProps.props" Condition="Exists('$(NuGetPackageRoot)bepinex.plugininfoprops\1.1.0\build\BepInEx.PluginInfoProps.props')" />
+    <Import Project="$(NuGetPackageRoot)\bepinex.plugininfoprops\1.1.0\build\BepInEx.PluginInfoProps.props" Condition="Exists('$(NuGetPackageRoot)\bepinex.plugininfoprops\1.1.0\build\BepInEx.PluginInfoProps.props')" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <PkgIllusionLibs_BepInEx_Harmony Condition=" '$(PkgIllusionLibs_BepInEx_Harmony)' == '' ">C:\Users\bigma\.nuget\packages\illusionlibs.bepinex.harmony\2.9.0</PkgIllusionLibs_BepInEx_Harmony>
-    <PkgBepInEx_Core Condition=" '$(PkgBepInEx_Core)' == '' ">C:\Users\bigma\.nuget\packages\bepinex.core\5.4.21</PkgBepInEx_Core>
-    <PkgBepInEx_Analyzers Condition=" '$(PkgBepInEx_Analyzers)' == '' ">C:\Users\bigma\.nuget\packages\bepinex.analyzers\1.0.8</PkgBepInEx_Analyzers>
+    <PkgMicrosoft_Unity_Analyzers Condition=" '$(PkgMicrosoft_Unity_Analyzers)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\microsoft.unity.analyzers\1.25.0</PkgMicrosoft_Unity_Analyzers>
+    <PkgIllusionLibs_HoneySelect2_UnityEngine_UIModule Condition=" '$(PkgIllusionLibs_HoneySelect2_UnityEngine_UIModule)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unityengine.uimodule\2018.4.11.4</PkgIllusionLibs_HoneySelect2_UnityEngine_UIModule>
+    <PkgIllusionLibs_HoneySelect2_UnityEngine_UI Condition=" '$(PkgIllusionLibs_HoneySelect2_UnityEngine_UI)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unityengine.ui\2018.4.11.4</PkgIllusionLibs_HoneySelect2_UnityEngine_UI>
+    <PkgIllusionLibs_HoneySelect2_UnityEngine_IMGUIModule Condition=" '$(PkgIllusionLibs_HoneySelect2_UnityEngine_IMGUIModule)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unityengine.imguimodule\2018.4.11.4</PkgIllusionLibs_HoneySelect2_UnityEngine_IMGUIModule>
+    <PkgIllusionLibs_HoneySelect2_UnityEngine_ImageConversionModule Condition=" '$(PkgIllusionLibs_HoneySelect2_UnityEngine_ImageConversionModule)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unityengine.imageconversionmodule\2018.4.11.4</PkgIllusionLibs_HoneySelect2_UnityEngine_ImageConversionModule>
+    <PkgIllusionLibs_HoneySelect2_UnityEngine_CoreModule Condition=" '$(PkgIllusionLibs_HoneySelect2_UnityEngine_CoreModule)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unityengine.coremodule\2018.4.11.4</PkgIllusionLibs_HoneySelect2_UnityEngine_CoreModule>
+    <PkgIllusionLibs_HoneySelect2_Unity_TextMeshPro Condition=" '$(PkgIllusionLibs_HoneySelect2_Unity_TextMeshPro)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unity.textmeshpro\2018.4.11.4</PkgIllusionLibs_HoneySelect2_Unity_TextMeshPro>
+    <PkgIllusionLibs_HoneySelect2_UniRx Condition=" '$(PkgIllusionLibs_HoneySelect2_UniRx)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.unirx\2020.5.29.5</PkgIllusionLibs_HoneySelect2_UniRx>
+    <PkgIllusionLibs_HoneySelect2_Sirenix_Serialization Condition=" '$(PkgIllusionLibs_HoneySelect2_Sirenix_Serialization)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.sirenix.serialization\2020.5.29.5</PkgIllusionLibs_HoneySelect2_Sirenix_Serialization>
+    <PkgIllusionLibs_HoneySelect2_IL Condition=" '$(PkgIllusionLibs_HoneySelect2_IL)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.il\2020.5.29.5</PkgIllusionLibs_HoneySelect2_IL>
+    <PkgIllusionLibs_HoneySelect2_Assembly-CSharp-firstpass Condition=" '$(PkgIllusionLibs_HoneySelect2_Assembly-CSharp-firstpass)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.assembly-csharp-firstpass\2020.5.29.5</PkgIllusionLibs_HoneySelect2_Assembly-CSharp-firstpass>
+    <PkgIllusionLibs_HoneySelect2_Assembly-CSharp Condition=" '$(PkgIllusionLibs_HoneySelect2_Assembly-CSharp)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.honeyselect2.assembly-csharp\2020.5.29.5</PkgIllusionLibs_HoneySelect2_Assembly-CSharp>
+    <PkgIllusionLibs_BepInEx_Harmony Condition=" '$(PkgIllusionLibs_BepInEx_Harmony)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.bepinex.harmony\2.9.0</PkgIllusionLibs_BepInEx_Harmony>
+    <PkgIllusionLibs_BepInEx Condition=" '$(PkgIllusionLibs_BepInEx)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionlibs.bepinex\5.4.22</PkgIllusionLibs_BepInEx>
+    <PkgExtensibleSaveFormat_HoneySelect2 Condition=" '$(PkgExtensibleSaveFormat_HoneySelect2)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\extensiblesaveformat.honeyselect2\21.1.2</PkgExtensibleSaveFormat_HoneySelect2>
+    <PkgBepInEx_Analyzers Condition=" '$(PkgBepInEx_Analyzers)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\bepinex.analyzers\1.0.8</PkgBepInEx_Analyzers>
+    <PkgIllusionModdingAPI_HS2API Condition=" '$(PkgIllusionModdingAPI_HS2API)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\illusionmoddingapi.hs2api\1.46.1</PkgIllusionModdingAPI_HS2API>
+    <PkgBepInEx_Core Condition=" '$(PkgBepInEx_Core)' == '' ">C:\Users\bigma\AppData\Local\Temp\cursor-sandbox-cache\fe12c50d528727f2913875f89f2dfec9\nuget\bepinex.core\5.4.21</PkgBepInEx_Core>
   </PropertyGroup>
 </Project>

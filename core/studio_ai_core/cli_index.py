@@ -13,23 +13,38 @@ import httpx
 
 from studio_ai_core.bridge import BridgeClient
 from studio_ai_core.config import camera_policy_from_settings, settings_from_config
+from studio_ai_core.core_ports import resolve_core_base_url
 from studio_ai_core.indexing.pipeline import IndexingService
 from studio_ai_core.indexing.posecode import derive_posecode
 from studio_ai_core.indexing.store import PoseIndexStore
 from studio_ai_core.worker_client import WorkerClient
 
 
+_core_base_cached: str | None = None
+
+
 def _core_base() -> str:
-    settings = settings_from_config()
-    return os.environ.get("STUDIO_AI_CORE_URL", f"http://127.0.0.1:{settings.port}").rstrip("/")
+    global _core_base_cached
+    if _core_base_cached:
+        return _core_base_cached
+    hint = os.environ.get("STUDIO_AI_CORE_URL")
+    if not hint:
+        settings = settings_from_config()
+        hint = f"http://127.0.0.1:{settings.port}"
+    try:
+        _core_base_cached = resolve_core_base_url(hint)
+    except RuntimeError:
+        _core_base_cached = hint.rstrip("/")
+    return _core_base_cached
 
 
 def _core_online(timeout: float = 2.0) -> bool:
     try:
+        base = _core_base()
         with httpx.Client(timeout=timeout) as client:
-            r = client.get(f"{_core_base()}/health")
+            r = client.get(f"{base}/health")
             return r.status_code < 500
-    except httpx.HTTPError:
+    except (httpx.HTTPError, RuntimeError):
         return False
 
 

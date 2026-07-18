@@ -1,6 +1,6 @@
 is_global = true
 build_property.RootNamespace = StudioAi.Plugin
-build_property.ProjectDir = H:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\
+build_property.ProjectDir = h:\Dateien\Dokumente\Repos\StudioAI\adapters\plugin\StudioAi.Plugin\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.CsWinRTUseWindowsUIXamlProjections = false

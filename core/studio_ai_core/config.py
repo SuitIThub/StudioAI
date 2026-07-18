@@ -21,7 +21,8 @@ class CoreSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="STUDIO_AI_CORE_", extra="ignore")
 
     host: str = "0.0.0.0"
-    port: int = 7860
+    # Start of ghost-port range 7200–7299 (see core_ports.pick_listen_port)
+    port: int = 7200
     node_id: str = "main-pc"
     worker_url: str = "http://127.0.0.1:7850"
     worker_token: str = ""
@@ -31,8 +32,8 @@ class CoreSettings(BaseSettings):
     grammars_dir: Path = REPO_ROOT / "deploy" / "grammars"
     config_path: Path | None = None
 
-    # Stage 3
-    bridge_url: str = "http://127.0.0.1:7842"
+    # Stage 3 – port auto-discovered on 7100–7199 at first Bridge contact
+    bridge_url: str = "http://127.0.0.1:7100"
     bridge_token: str = ""
     index_db_path: Path = REPO_ROOT / "data" / "pose_index.sqlite"
     capture_dir: Path = REPO_ROOT / "data" / "captures"
@@ -108,7 +109,7 @@ def settings_from_config(config_path: Path | None = None) -> CoreSettings:
 
     return CoreSettings(
         host=core.get("host", "0.0.0.0"),
-        port=int(core.get("port", 7860)),
+        port=int(core.get("port", 7200)),
         node_id=node.get("id", "main-pc"),
         worker_url=str(worker.get("url", "http://127.0.0.1:7850")).rstrip("/"),
         worker_token=str(worker.get("token", "") or ""),
@@ -117,7 +118,7 @@ def settings_from_config(config_path: Path | None = None) -> CoreSettings:
         default_persona=str(core.get("default_persona", "stheno")),
         grammars_dir=grammars,
         config_path=path if path.is_file() else None,
-        bridge_url=str(bridge.get("url", "http://127.0.0.1:7842")).rstrip("/"),
+        bridge_url=str(bridge.get("url", "http://127.0.0.1:7100")).rstrip("/"),
         bridge_token=str(bridge.get("token", "") or ""),
         index_db_path=db_path,
         capture_dir=capture_dir,

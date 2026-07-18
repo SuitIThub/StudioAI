@@ -13,7 +13,7 @@ from typing import Any
 from studio_ai_core.bridge import BridgeClient, BridgeError
 from studio_ai_core.indexing import INDEX_VERSION
 from studio_ai_core.indexing.cameras import CameraPolicy, resolve_views
-from studio_ai_core.indexing.joycaption import INDEX_CAPTION_TYPE, JoyCaptionClient
+from studio_ai_core.indexing.joycaption import INDEX_CAPTION_TYPE, JoyCaptionClient, JoyCaptionUnavailable
 from studio_ai_core.indexing.merge import fallback_index_entry, merge_index_entry
 from studio_ai_core.indexing.posecode import derive_posecode
 from studio_ai_core.indexing.store import PoseIndexStore
@@ -329,3 +329,158 @@ class IndexingService:
             "errors": errors,
             "total_in_store": self.store.count(),
         }
+
+    async def index_paths(
+        self,
+        paths: list[str],
+        *,
+        character_id: int = 0,
+        use_joycaption: bool = True,
+        use_merge: bool = True,
+        size: int = 512,
+        allow_stub: bool = False,
+    ) -> dict[str, Any]:
+        """Index explicit pose file/folder paths (PoseBrowser selection).
+
+        Preferred path for library ``.png`` / pose files:
+          Bridge capture (pose should already be applied by Plugin or Bridge) →
+          JoyCaption → merge → SQLite.
+
+        Folders with ``pose_compact.txt`` still use offline folder indexing.
+        ``allow_stub=True`` keeps the old filename-only fallback (not for production tests).
+        """
+        results: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+
+        for raw in paths:
+            try:
+                p = Path(raw)
+                folder = p if p.is_dir() else p.parent
+                compact = folder / "pose_compact.txt"
+                if compact.is_file() and (p.is_dir() or not p.suffix):
+                    logger.info("index_paths offline folder %s", folder)
+                    out = await self.index_offline_folder(
+                        folder, use_joycaption=use_joycaption, use_merge=use_merge
+                    )
+                    results.append(
+                        {
+                            "pose_id": out.get("pose_id"),
+                            "path": str(folder),
+                            "source": "offline_folder",
+                            "index_version": out.get("index_version"),
+                        }
+                    )
+                    continue
+
+                if not p.exists() and not Path(raw).exists():
+                    raise FileNotFoundError(f"path not found: {raw}")
+
+                file_path = p if p.is_file() or p.suffix else p
+                abs_path = str(file_path.resolve()) if file_path.exists() else str(Path(raw))
+                pose_id = pose_id_from_path(abs_path) or file_path.stem
+
+                logger.info(
+                    "index_paths LIVE capture+describe pose_id=%s path=%s char=%s joycaption=%s",
+                    pose_id,
+                    abs_path,
+                    character_id,
+                    use_joycaption,
+                )
+                try:
+                    cap = await self.capture(
+                        character_id=character_id,
+                        pose_path=abs_path,
+                        size=size,
+                    )
+                    logger.info(
+                        "index_paths capture ok pose_id=%s mode=%s views=%s applied=%s",
+                        pose_id,
+                        cap.get("mode"),
+                        list((cap.get("captures") or {}).keys()),
+                        cap.get("applied"),
+                    )
+                    # Ensure store path is the library file, not capture dir
+                    cap["pose_path"] = abs_path
+                    out = await self.index_from_capture(
+                        cap,
+                        pose_id=pose_id,
+                        use_joycaption=use_joycaption,
+                        use_merge=use_merge,
+                    )
+                    results.append(
+                        {
+                            "pose_id": out.get("pose_id") or pose_id,
+                            "path": abs_path,
+                            "source": "live_capture",
+                            "index_version": out.get("index_version"),
+                            "captions": list((out.get("captions") or {}).keys())
+                            if isinstance(out.get("captions"), dict)
+                            else [],
+                            "description": (out.get("stored") or {}).get("description")
+                            if isinstance(out.get("stored"), dict)
+                            else out.get("merge", {}).get("entry", {}).get("description")
+                            if isinstance(out.get("merge"), dict)
+                            else None,
+                        }
+                    )
+                except (BridgeError, JoyCaptionUnavailable, WorkerOfflineError) as exc:
+                    if allow_stub:
+                        logger.warning(
+                            "index_paths live failed (%s); stub fallback for %s",
+                            exc,
+                            abs_path,
+                        )
+                        desc = (file_path.stem or pose_id).replace("_", " ").replace("-", " ").strip()
+                        tags = [t for t in (file_path.stem or pose_id).replace("-", "_").split("_") if t]
+                        self.store.upsert(
+                            pose_id=pose_id,
+                            path=abs_path,
+                            description=desc or pose_id,
+                            tags=tags,
+                            synonyms=[],
+                            posecode_raw=None,
+                            posecode_text=None,
+                            posecode_tags=[],
+                            captures={},
+                            captions={},
+                            index_version=INDEX_VERSION,
+                        )
+                        results.append(
+                            {
+                                "pose_id": pose_id,
+                                "path": abs_path,
+                                "source": "path_stub_fallback",
+                                "index_version": INDEX_VERSION,
+                                "error": str(exc),
+                            }
+                        )
+                    else:
+                        raise
+            except Exception as exc:
+                logger.exception("index_paths failed for %s", raw)
+                errors.append({"path": str(raw), "error": str(exc)})
+
+        items = [
+            {
+                "pose_id": r.get("pose_id"),
+                "path": r.get("path"),
+                "source": r.get("source") or "unknown",
+                "description": r.get("description"),
+            }
+            for r in results
+        ]
+        out = {
+            "ok": len(errors) == 0,
+            "indexed": len(results),
+            "errors": errors,
+            "items": items,
+            "total_in_store": self.store.count(),
+        }
+        logger.info(
+            "index_paths done: indexed=%s errors=%s store=%s sample=%s",
+            out["indexed"],
+            len(errors),
+            out["total_in_store"],
+            items[:5],
+        )
+        return out

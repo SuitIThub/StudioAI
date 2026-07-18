@@ -14,11 +14,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\..\chat-icon.png" CopyToOutputDirectory="PreserveNewest" Link="chat-icon.png" />
+    <EmbeddedResource Include="..\..\..\chat-icon.png">
+      <LogicalName>$(AssemblyName).chat-icon.png</LogicalName>
+      <Link>chat-icon.png</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.1.0" />
     <PackageReference Include="UnityEngine.Modules" Version="2018.4.30" IncludeAssets="compile" />
     <PackageReference Include="IllusionLibs.BepInEx.Harmony" Version="2.9.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="IllusionModdingAPI.HS2API" Version="1.46.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>compile</IncludeAssets>
     </PackageReference>

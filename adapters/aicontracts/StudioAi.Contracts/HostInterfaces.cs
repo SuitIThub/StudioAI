@@ -5,7 +5,7 @@ namespace StudioAi.Contracts
 {
     /// <summary>
     /// Host APIs Pose Browser exposes to StudioAI (implemented in HS2-Sandbox PoseBrowser).
-    /// Stage 5a — search filter + headless apply. UI host arrives in 5b.
+    /// Stage 5b: PB = search filter + index triggers only; Chat/Feedback UI = StudioAi.Plugin.
     /// </summary>
     public interface IPoseBrowserHost
     {
@@ -24,5 +24,11 @@ namespace StudioAi.Contracts
     public interface IPoseAiSearchProvider
     {
         Task<SearchResponse?> SearchAsync(string query, int limit = 20);
+    }
+
+    public interface IPoseAiIndexProvider
+    {
+        Task IndexRootAsync(string poseRoot);
+        Task IndexPathsAsync(IReadOnlyList<string> absolutePaths);
     }
 }

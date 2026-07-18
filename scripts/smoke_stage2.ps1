@@ -2,7 +2,7 @@
 #   .\scripts\smoke_stage2.ps1 -Chat -Persona stheno
 #   .\scripts\smoke_stage2.ps1 -Structured
 param(
-    [string]$Base = "http://127.0.0.1:7860",
+    [string]$Base = "http://127.0.0.1:7200",
     [string]$Persona = "stheno",
     [switch]$Chat,
     [switch]$Structured,

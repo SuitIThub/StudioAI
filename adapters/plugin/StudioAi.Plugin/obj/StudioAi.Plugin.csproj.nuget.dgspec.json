@@ -1,22 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj": {}
+    "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj": {}
   },
   "projects": {
-    "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
+    "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
+        "projectUniqueName": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
         "projectName": "StudioAi.Contracts",
-        "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
-        "packagesPath": "C:\\Users\\bigma\\.nuget\\packages\\",
-        "outputPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\obj\\",
+        "projectPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj",
+        "packagesPath": "C:\\Users\\bigma\\AppData\\Local\\Temp\\cursor-sandbox-cache\\fe12c50d528727f2913875f89f2dfec9\\nuget",
+        "outputPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "H:\\Programme\\VisualStudio\\VisualStudioShared\\NuGetPackages"
         ],
         "configFilePaths": [
+          "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\NuGet.Config",
           "C:\\Users\\bigma\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -25,10 +26,8 @@
           "net472"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.bepinex.dev/v3/index.json": {},
-          "https://pkgs.dev.azure.com/IllusionMods/Nuget/_packaging/IllusionMods/nuget/v3/index.json": {}
+          "https://nuget.bepinex.dev/v3/index.json": {}
         },
         "frameworks": {
           "net472": {
@@ -65,19 +64,20 @@
         }
       }
     },
-    "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj": {
+    "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
+        "projectUniqueName": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
         "projectName": "StudioAi.Plugin",
-        "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
-        "packagesPath": "C:\\Users\\bigma\\.nuget\\packages\\",
-        "outputPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\obj\\",
+        "projectPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
+        "packagesPath": "C:\\Users\\bigma\\AppData\\Local\\Temp\\cursor-sandbox-cache\\fe12c50d528727f2913875f89f2dfec9\\nuget",
+        "outputPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "H:\\Programme\\VisualStudio\\VisualStudioShared\\NuGetPackages"
         ],
         "configFilePaths": [
+          "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\NuGet.Config",
           "C:\\Users\\bigma\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -86,17 +86,15 @@
           "net472"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.bepinex.dev/v3/index.json": {},
-          "https://pkgs.dev.azure.com/IllusionMods/Nuget/_packaging/IllusionMods/nuget/v3/index.json": {}
+          "https://nuget.bepinex.dev/v3/index.json": {}
         },
         "frameworks": {
           "net472": {
             "targetAlias": "net472",
             "projectReferences": {
-              "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
-                "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj"
+              "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
+                "projectPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj"
               }
             }
           }
@@ -135,6 +133,12 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[2.9.0, )"
+            },
+            "IllusionModdingAPI.HS2API": {
+              "include": "Compile",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.46.1, )"
             },
             "UnityEngine.Modules": {
               "include": "Compile",

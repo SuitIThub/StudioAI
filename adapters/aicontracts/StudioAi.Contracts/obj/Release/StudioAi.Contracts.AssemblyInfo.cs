@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("StudioAi.Contracts")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+80dc94ed3ce17492830dd1f788ad118dc49c048b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a1de04bc4fb7bdc6d6c6ddb301c6bf8b20d656e5")]
 [assembly: System.Reflection.AssemblyProductAttribute("StudioAi.Contracts")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StudioAi.Contracts")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

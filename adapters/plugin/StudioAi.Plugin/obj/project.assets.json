@@ -36,6 +36,22 @@
           "build/BepInEx.PluginInfoProps.props": {}
         }
       },
+      "ExtensibleSaveFormat.HoneySelect2/21.1.2": {
+        "type": "package",
+        "dependencies": {
+          "IllusionLibs.BepInEx": "5.4.22"
+        },
+        "compile": {
+          "lib/net46/HS2_ExtensibleSaveFormat.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net46/_._": {
+            "related": ".xml"
+          }
+        }
+      },
       "HarmonyX/2.7.0": {
         "type": "package",
         "dependencies": {
@@ -48,6 +64,22 @@
         },
         "runtime": {
           "lib/net45/0Harmony.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "IllusionLibs.BepInEx/5.4.22": {
+        "type": "package",
+        "dependencies": {
+          "IllusionLibs.BepInEx.Harmony": "[2.9.0]"
+        },
+        "compile": {
+          "lib/net35/BepInEx.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net35/_._": {
             "related": ".xml"
           }
         }
@@ -67,6 +99,173 @@
         "build": {
           "build/_._": {}
         }
+      },
+      "IllusionLibs.HoneySelect2.Assembly-CSharp/2020.5.29.5": {
+        "type": "package",
+        "compile": {
+          "lib/net46/Assembly-CSharp.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.Assembly-CSharp-firstpass/2020.5.29.5": {
+        "type": "package",
+        "compile": {
+          "lib/net46/Assembly-CSharp-firstpass.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.IL/2020.5.29.5": {
+        "type": "package",
+        "compile": {
+          "lib/net46/IL.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.Sirenix.Serialization/2020.5.29.5": {
+        "type": "package",
+        "compile": {
+          "lib/net46/Sirenix.Serialization.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UniRx/2020.5.29.5": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UniRx.Async.dll": {},
+          "lib/net46/UniRx.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.Unity.TextMeshPro/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/Unity.TextMeshPro.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UnityEngine.CoreModule/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UnityEngine.CoreModule.dll": {},
+          "lib/net46/UnityEngine.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UnityEngine.ImageConversionModule/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UnityEngine.ImageConversionModule.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UnityEngine.IMGUIModule/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UnityEngine.IMGUIModule.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UnityEngine.UI/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UnityEngine.UI.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionLibs.HoneySelect2.UnityEngine.UIModule/2018.4.11.4": {
+        "type": "package",
+        "compile": {
+          "lib/net46/UnityEngine.UIModule.dll": {}
+        },
+        "runtime": {
+          "lib/net46/_._": {}
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
+      "IllusionModdingAPI.HS2API/1.46.1": {
+        "type": "package",
+        "dependencies": {
+          "BepInEx.Analyzers": "1.0.4",
+          "ExtensibleSaveFormat.HoneySelect2": "19.4.0",
+          "IllusionLibs.BepInEx": "5.4.22",
+          "IllusionLibs.HoneySelect2.Assembly-CSharp": "2020.5.29.5",
+          "IllusionLibs.HoneySelect2.Assembly-CSharp-firstpass": "2020.5.29.5",
+          "IllusionLibs.HoneySelect2.IL": "2020.5.29.5",
+          "IllusionLibs.HoneySelect2.Sirenix.Serialization": "2020.5.29.5",
+          "IllusionLibs.HoneySelect2.UniRx": "2020.5.29.5",
+          "IllusionLibs.HoneySelect2.Unity.TextMeshPro": "2018.4.11.4",
+          "IllusionLibs.HoneySelect2.UnityEngine.CoreModule": "2018.4.11.4",
+          "IllusionLibs.HoneySelect2.UnityEngine.IMGUIModule": "2018.4.11.4",
+          "IllusionLibs.HoneySelect2.UnityEngine.ImageConversionModule": "2018.4.11.4",
+          "IllusionLibs.HoneySelect2.UnityEngine.UI": "2018.4.11.4",
+          "IllusionLibs.HoneySelect2.UnityEngine.UIModule": "2018.4.11.4",
+          "Microsoft.Unity.Analyzers": "1.25.0"
+        },
+        "compile": {
+          "lib/net46/HS2API.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net46/_._": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Microsoft.Unity.Analyzers/1.25.0": {
+        "type": "package"
       },
       "Mono.Cecil/0.11.4": {
         "type": "package",
@@ -442,6 +641,20 @@
         "build/BepInEx.PluginInfoProps.props"
       ]
     },
+    "ExtensibleSaveFormat.HoneySelect2/21.1.2": {
+      "sha512": "1iX/HvgZW4j0iCsaT+6KihJauhVZyjkO7BMeQq8C4b4wwOvmMndiq4tFFLX6TooC2yt+Bhj4W2T+Wbvs9+sWsA==",
+      "type": "package",
+      "path": "extensiblesaveformat.honeyselect2/21.1.2",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "extensiblesaveformat.honeyselect2.21.1.2.nupkg.sha512",
+        "extensiblesaveformat.honeyselect2.nuspec",
+        "lib/net46/HS2_ExtensibleSaveFormat.dll",
+        "lib/net46/HS2_ExtensibleSaveFormat.xml",
+        "tools/install.ps1"
+      ]
+    },
     "HarmonyX/2.7.0": {
       "sha512": "lec/SkduQspMa3Pi/nM/NSvA84Za8HCCWA8ybdToKiTqnBZa+JC5g6rxoFQCg/1vNuYcvjy77edePZzIEsRmvw==",
       "type": "package",
@@ -461,6 +674,21 @@
         "logo_mini.png"
       ]
     },
+    "IllusionLibs.BepInEx/5.4.22": {
+      "sha512": "2vIeFExyRZnUBTCoIOM4X0fPFHfa66TsN9XSe+ZV557AA8qu9M23SUnzfZUWhLghK9gJt0SXA744n9BnCV2u3Q==",
+      "type": "package",
+      "path": "illusionlibs.bepinex/5.4.22",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.BepInEx.BepInEx.targets",
+        "illusionlibs.bepinex.5.4.22.nupkg.sha512",
+        "illusionlibs.bepinex.nuspec",
+        "lib/net35/BepInEx.dll",
+        "lib/net35/BepInEx.xml",
+        "tools/install.ps1"
+      ]
+    },
     "IllusionLibs.BepInEx.Harmony/2.9.0": {
       "sha512": "z06STa3b51Aa+Y0WO7vjuthKc7vo6+wjs5zVnu7yPGlKDqkHxLZ1i7RAz5tI9hPOYfiqtjwFe9XWB84kstQitQ==",
       "type": "package",
@@ -474,6 +702,191 @@
         "lib/net35/0Harmony.dll",
         "lib/net35/0Harmony.xml",
         "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.Assembly-CSharp/2020.5.29.5": {
+      "sha512": "rr5DfQOEHjdeeEcdiCdIpNhvzDlqdTwp2QjYRiMaKc74R98PHQx+p27L8jeUb4HYtz0WGmdfeBW0tU0iDPzMxQ==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.assembly-csharp/2020.5.29.5",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.Assembly-CSharp.targets",
+        "illusionlibs.honeyselect2.assembly-csharp.2020.5.29.5.nupkg.sha512",
+        "illusionlibs.honeyselect2.assembly-csharp.nuspec",
+        "lib/net46/Assembly-CSharp.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.Assembly-CSharp-firstpass/2020.5.29.5": {
+      "sha512": "eETwOnFLMqXyz012TTP5b0HW7WAaybIWllScQBDQcXz9uCDvcI37qK/v+dQfUmvwYERGc5ex/K7R0d3QpmOpWQ==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.assembly-csharp-firstpass/2020.5.29.5",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.Assembly-CSharp-firstpass.targets",
+        "illusionlibs.honeyselect2.assembly-csharp-firstpass.2020.5.29.5.nupkg.sha512",
+        "illusionlibs.honeyselect2.assembly-csharp-firstpass.nuspec",
+        "lib/net46/Assembly-CSharp-firstpass.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.IL/2020.5.29.5": {
+      "sha512": "ol7rYNZCHXzgctzDk5QSc4zhRpQHOo8T1jsLhVD1nW8jRvbpYmM7K72C0y+PS72oCkfsILXnjQlgF9RDJwivqg==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.il/2020.5.29.5",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.IL.targets",
+        "illusionlibs.honeyselect2.il.2020.5.29.5.nupkg.sha512",
+        "illusionlibs.honeyselect2.il.nuspec",
+        "lib/net46/IL.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.Sirenix.Serialization/2020.5.29.5": {
+      "sha512": "9ZvgufHxxbPb4+3LoshWu45wIYBYZGsXg/2oIPSVGiHOrkQjentJIRusOMhZssWwRB12IncYF921UAPhkaTqzA==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.sirenix.serialization/2020.5.29.5",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.Sirenix.Serialization.targets",
+        "illusionlibs.honeyselect2.sirenix.serialization.2020.5.29.5.nupkg.sha512",
+        "illusionlibs.honeyselect2.sirenix.serialization.nuspec",
+        "lib/net46/Sirenix.Serialization.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UniRx/2020.5.29.5": {
+      "sha512": "tgxRw+/PA9Q1YuGhJx+kWE/w0m28qcp/w2RhVGNVMbwT5daOFQtx7OShAnhudAe/FHNCocDTU4PLxOE65lXRng==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unirx/2020.5.29.5",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UniRx.targets",
+        "illusionlibs.honeyselect2.unirx.2020.5.29.5.nupkg.sha512",
+        "illusionlibs.honeyselect2.unirx.nuspec",
+        "lib/net46/UniRx.Async.dll",
+        "lib/net46/UniRx.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.Unity.TextMeshPro/2018.4.11.4": {
+      "sha512": "eFa3vsGorhlIwhNMwIwbaEo4L5axcRmg9TwGFmlMLTwdl4KY6bMyRuY55beXMWLcP/L7ralq/cBE+66Wzh/bDw==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unity.textmeshpro/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.Unity.TextMeshPro.targets",
+        "illusionlibs.honeyselect2.unity.textmeshpro.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unity.textmeshpro.nuspec",
+        "lib/net46/Unity.TextMeshPro.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UnityEngine.CoreModule/2018.4.11.4": {
+      "sha512": "97d08zgUwRZC41ROUoUJ6jqtBqJttRdapOBMZOHdBu21l9KdyM0oRCJ9cBBiBI1Oiy56CoIhTFHb+TjW4lIqPg==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unityengine.coremodule/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UnityEngine.CoreModule.targets",
+        "illusionlibs.honeyselect2.unityengine.coremodule.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unityengine.coremodule.nuspec",
+        "lib/net46/UnityEngine.CoreModule.dll",
+        "lib/net46/UnityEngine.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UnityEngine.ImageConversionModule/2018.4.11.4": {
+      "sha512": "rapJXvGpaIhwx5brQwvE3IQBx2Qpeo3p4yPT4Z0hIVg+gggts8oTljJjkiwuDs1wT9KI2RCtGWawxiL6a0p6wQ==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unityengine.imageconversionmodule/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UnityEngine.ImageConversionModule.targets",
+        "illusionlibs.honeyselect2.unityengine.imageconversionmodule.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unityengine.imageconversionmodule.nuspec",
+        "lib/net46/UnityEngine.ImageConversionModule.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UnityEngine.IMGUIModule/2018.4.11.4": {
+      "sha512": "0JcBfqZXnD9rlLFkhlAJ4lNQaxEyX1F8i/1WqPDPvtCyS1geO9gDbKHNRoiXzCruqjhzNduK5BL+hBIEUJHz6g==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unityengine.imguimodule/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UnityEngine.IMGUIModule.targets",
+        "illusionlibs.honeyselect2.unityengine.imguimodule.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unityengine.imguimodule.nuspec",
+        "lib/net46/UnityEngine.IMGUIModule.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UnityEngine.UI/2018.4.11.4": {
+      "sha512": "ESFlGucfzLR1PcwxhGHLWGfVyFkiGPHUUi4xBicp/qcXde7kk+EM1tvVNPWobWxIi6/oURXdLpDqVDqEE6uFvQ==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unityengine.ui/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UnityEngine.UI.targets",
+        "illusionlibs.honeyselect2.unityengine.ui.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unityengine.ui.nuspec",
+        "lib/net46/UnityEngine.UI.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionLibs.HoneySelect2.UnityEngine.UIModule/2018.4.11.4": {
+      "sha512": "5BvYEOb0RfdCIW+gHhJp/jXdeORo0jgPxUrk8XgSsjPepOTEl+sWjeNmCvbvnE2gjaTbLlrDYncp0pKW26bFfg==",
+      "type": "package",
+      "path": "illusionlibs.honeyselect2.unityengine.uimodule/2018.4.11.4",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "build/IllusionLibs.HoneySelect2.UnityEngine.UIModule.targets",
+        "illusionlibs.honeyselect2.unityengine.uimodule.2018.4.11.4.nupkg.sha512",
+        "illusionlibs.honeyselect2.unityengine.uimodule.nuspec",
+        "lib/net46/UnityEngine.UIModule.dll",
+        "tools/install.ps1"
+      ]
+    },
+    "IllusionModdingAPI.HS2API/1.46.1": {
+      "sha512": "mwwbYTuyy5TAcD5VT+/QMYlk+ZWVIxhPYo0R8f1TBoNKjQhBT+G0JYtgzDoSGVaVZRL6FmS9FCLamaxc3CCFLQ==",
+      "type": "package",
+      "path": "illusionmoddingapi.hs2api/1.46.1",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        "illusionmoddingapi.hs2api.1.46.1.nupkg.sha512",
+        "illusionmoddingapi.hs2api.nuspec",
+        "lib/net46/HS2API.dll",
+        "lib/net46/HS2API.xml",
+        "tools/install.ps1"
+      ]
+    },
+    "Microsoft.Unity.Analyzers/1.25.0": {
+      "sha512": "jOclVb2PVoOdKafuzt3bJ3BHkbjsfuAx+60yqP4zCAhlNa1rwn1Jt05qrmqJgmBY42S08hXbps9KA6QR2Z7aOA==",
+      "type": "package",
+      "path": "microsoft.unity.analyzers/1.25.0",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "analyzers/dotnet/cs/Microsoft.Unity.Analyzers.dll",
+        "microsoft.unity.analyzers.1.25.0.nupkg.sha512",
+        "microsoft.unity.analyzers.nuspec",
+        "tools/install.ps1",
+        "tools/uninstall.ps1"
       ]
     },
     "Mono.Cecil/0.11.4": {
@@ -1155,27 +1568,29 @@
       "BepInEx.Core >= 5.4.21",
       "BepInEx.PluginInfoProps >= 1.1.0",
       "IllusionLibs.BepInEx.Harmony >= 2.9.0",
+      "IllusionModdingAPI.HS2API >= 1.46.1",
       "StudioAi.Contracts >= 1.0.0",
       "UnityEngine.Modules >= 2018.4.30"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\bigma\\.nuget\\packages\\": {},
+    "C:\\Users\\bigma\\AppData\\Local\\Temp\\cursor-sandbox-cache\\fe12c50d528727f2913875f89f2dfec9\\nuget": {},
     "H:\\Programme\\VisualStudio\\VisualStudioShared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
+      "projectUniqueName": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
       "projectName": "StudioAi.Plugin",
-      "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
-      "packagesPath": "C:\\Users\\bigma\\.nuget\\packages\\",
-      "outputPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\obj\\",
+      "projectPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\StudioAi.Plugin.csproj",
+      "packagesPath": "C:\\Users\\bigma\\AppData\\Local\\Temp\\cursor-sandbox-cache\\fe12c50d528727f2913875f89f2dfec9\\nuget",
+      "outputPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\plugin\\StudioAi.Plugin\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "H:\\Programme\\VisualStudio\\VisualStudioShared\\NuGetPackages"
       ],
       "configFilePaths": [
+        "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\NuGet.Config",
         "C:\\Users\\bigma\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -1184,17 +1599,15 @@
         "net472"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {},
-        "https://nuget.bepinex.dev/v3/index.json": {},
-        "https://pkgs.dev.azure.com/IllusionMods/Nuget/_packaging/IllusionMods/nuget/v3/index.json": {}
+        "https://nuget.bepinex.dev/v3/index.json": {}
       },
       "frameworks": {
         "net472": {
           "targetAlias": "net472",
           "projectReferences": {
-            "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
-              "projectPath": "H:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj"
+            "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj": {
+              "projectPath": "h:\\Dateien\\Dokumente\\Repos\\StudioAI\\adapters\\aicontracts\\StudioAi.Contracts\\StudioAi.Contracts.csproj"
             }
           }
         }
@@ -1234,6 +1647,12 @@
             "target": "Package",
             "version": "[2.9.0, )"
           },
+          "IllusionModdingAPI.HS2API": {
+            "include": "Compile",
+            "suppressParent": "All",
+            "target": "Package",
+            "version": "[1.46.1, )"
+          },
           "UnityEngine.Modules": {
             "include": "Compile",
             "target": "Package",
@@ -1243,5 +1662,17 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.316\\RuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "IllusionModdingAPI.HS2API 1.46.1 hängt von ExtensibleSaveFormat.HoneySelect2 (>= 19.4.0) ab, aber ExtensibleSaveFormat.HoneySelect2 19.4.0 wurde nicht gefunden. ExtensibleSaveFormat.HoneySelect2 21.1.2 wurde stattdessen aufgelöst.",
+      "libraryId": "ExtensibleSaveFormat.HoneySelect2",
+      "targetGraphs": [
+        ".NETFramework,Version=v4.7.2"
+      ]
+    }
+  ]
 }

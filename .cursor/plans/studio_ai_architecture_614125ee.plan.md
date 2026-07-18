@@ -18,8 +18,8 @@ todos:
     content: "Stufe 5a: Contracts + headless Host + Search-Hook — dann PAUSE Test"
     status: completed
   - id: stage-5b-pb-ui
-    content: "Stufe 5b: Chat-Panel + Index-UI + Agent-Tools + Overlay — dann PAUSE Test"
-    status: pending
+    content: "Stufe 5b: PB=Index+AI-Search; Plugin=Chat+Live-Feedback; Agent-Tools+Pose-Links — dann PAUSE Test"
+    status: completed
 isProject: false
 ---
 
@@ -206,15 +206,30 @@ flowchart LR
 
 **→ PAUSE (Test)**
 
-### Stufe 5b – PoseBrowser UI + Agent-Tools
+### Stufe 5b – PoseBrowser (pose-only) + Plugin Chat/Feedback + Agent-Tools
 
-**Ziel:** Chat-Panel, Index-UI, Overlay, Agent-Tools.
+**Ziel:** Klare UI-Trennung — PoseBrowser nur posebezogene AI; Chat + Scene-Feedback im StudioAI-Plugin.
 
-- AI-Search-Toggle, Chat-Panel, Index-Bar, Badges, Feedback-Slot
-- Agent-Tools: search/apply/index/analyze
-- Manuelle Tags unangetastet
+**PoseBrowser (nur Pose-Bezug):**
 
-**Abnahme:** Chat→Search→Apply; Index-Job; Overlay; degraded ohne AI.
+- **Eine** normale Suchleiste für Text- und AI-Suche (keine separate AI-Query-Zeile)
+  - Beide Filter **hand in hand** (Intersection): Text-Textfilter ∩ AI-Treffer-Allowlist, solange AI-Suche aktiv
+  - **AI-Search-Toggle**: AI-Anteil an/aus; aus = nur normale Suche/Filter wie bisher; an = Query kann zusätzlich Core-FTS anstoßen bzw. AI-Allowlist bleibt wirksam
+- Index-UI: Options „alle indexieren“, Action-Panel „Auswahl indexieren“, Progress, Badges indexed/outdated
+- Manuelle Tags unangetastet; AI überschreibt `PoseTagDatabase` nicht
+- **Nicht** in PoseBrowser: Chat-Panel, Live-Feedback-Overlay, RP-UI, separate AI-Suchleiste
+
+**StudioAi.Plugin (eigenes UI-Fenster / Panel):**
+
+- **Chat-Panel** (Agent Stheno/Satyr über Core)
+- **Scene-Feedback im Chat eingebunden** (kein separates Overlay als Haupt-UI):
+  - **Live-Feedback (Watch):** im Chat aktivierbar → periodische Feedback-Nachrichten in den Chat-Verlauf; **Eingabefeld gesperrt** solange Live aktiv; User kann Feedback lesen, aber nicht tippen; Deaktivieren → wieder normal chatten
+  - **Manuelles Feedback:** Button/Befehl „Szene analysieren“ → eine Feedback-Nachricht in den Chat; **danach normales Chatten** (darauf eingehen erlaubt)
+  - **Capture-Thumbnails im Chat:** zu Feedback-/Analyze-/Index-Captures die zugehörigen Screenshots (Studio-Kamera / Index-Views) als Bild im Nachrichtenverlauf anzeigen (nicht nur Text)
+- Agent kann Posen **referenzieren/verlinken** (z. B. klickbarer Pose-Pfad / Apply oder „im PoseBrowser zeigen“ über Search-Host)
+- Agent-Tools (Core): search/apply/index/analyze (+ list_characters, screenshot, scene summary)
+
+**Abnahme:** Index-Job aus PB; AI-Search im Grid; Chat im Plugin mit manuellem Feedback + Live-Modus (Input lock); Pose-Links aus Chat; degraded ohne Core.
 
 **→ PAUSE (Test)** – danach optional Polish
 
@@ -273,7 +288,7 @@ Shared Interfaces (keine Implementierungslogik):
 
 - `IPoseBrowserHost` – headless: PoseRoot, Enumerate, Apply, **ApplyAndCaptureAsync**
 - `IPoseBrowserSearchHost` – AI-Treffer in `ApplyFilters` einspeisen
-- `IPoseBrowserUiHost` – Chat-Panel-Slot, Statuszeile, Kontextmenü-Hooks, **Feedback-Overlay-Slot**
+- PoseBrowser stellt **keine** Chat-/Feedback-UI bereit; Chat/Feedback-UI = StudioAi.Plugin
 - Bridge-seitig: Scene-Change-Events (Charakter hinzugefügt/entfernt, Pose applied, Selection geändert)
 
 DTOs: SearchRequest/Hit, ChatRequest/Context/Sink, IndexJobRequest/Progress, CaptureRequest/Result (**inkl. posecode**), PoseAiMetadata, SceneFeedbackRequest (**inkl. `instruction`**), SceneFeedbackResult.
@@ -441,22 +456,27 @@ SQLite im **Core**: description/tags/synonyms + captures_json + posecode_* + ind
 
 ## Phase 3 – PoseBrowser-Integration
 
-### PoseBrowser muss liefern
+### PoseBrowser muss liefern (pose-only UI)
 
 1. Headless `IPoseBrowserHost` (nicht an `ActiveInstance` gebunden)
 2. `ApplyAndCaptureAsync` auf Main Thread
 3. Enumerate über `PoseLibraryIndexCache`
 4. `IPoseBrowserSearchHost` + Hook in Filter-Pipeline ([PoseBrowserGridLayout.BuildFilteredDisplayList](H:\Dateien\Dokumente\Repos\HS2-Sandbox\src\PoseBrowser\PoseBrowserGridLayout.cs))
-5. UI: AI-Search-Toggle, Chat-Panel, Index-Bar, Status, Badge indexed/outdated
+5. UI **nur:** normale Suchleiste (Text ∩ optional AI-Allowlist), **AI-Search-Toggle**, Index-Bar (alle / Auswahl), Status, Badge indexed/outdated — **keine** zweite AI-Suchleiste
 6. Manuelle Tags und AI-Tags getrennt (AI überschreibt `PoseTagDatabase` nicht)
+7. **Kein** Chat-, Feedback- oder RP-Panel in PoseBrowser
 
-### StudioAi.Plugin liefert (thin)
+### StudioAi.Plugin liefert
 
-Nur HTTP-Client zum **Core** + `PoseAiServices.Register`. Keine lokale Kopie von Prompts/Schema/GBNF.
+- Thin HTTP-Client zum **Core** + Provider-Register; keine Prompts/Schema/GBNF lokal
+- **Eigenes Chat-UI** (IMGUI/Window): Agent-Chat, manuelles + Live-Feedback als Chat-Nachrichten
+- Live-Feedback: Watch starten/stoppen; während aktiv → Input disabled; Events als System-/Assistent-Bubbles
+- Pose-Links in Chat-Antworten → Apply und/oder PoseBrowser-Filter (`SetAiSearchResults` / `TryApplyPoseByPath`)
 
-### Chat → Search
+### Chat → Search / Pose-Link
 
-Agent-Tool im **Core** `search_poses` → Plugin forderd `OnSearchResults` → `SetAiSearchResults` → Grid.
+Agent-Tool im **Core** `search_poses` → Plugin → optional Grid-Filter + klickbare Referenzen im Chat.  
+`apply_pose` / „show in browser“ über Host-APIs.
 
 ---
 
@@ -485,19 +505,20 @@ VRAM-Scheduler Haupt-PC: JoyCaption exklusiv – Index-Jobs und Scene-Feedback *
 
 **Ziel:** Einschätzung dessen, **was als Bild entsteht** – der gerenderten Szene, nicht Bone-Metadaten.
 
-Logik im **Core** (`scene_feedback/`). Bridge liefert **Render-Screenshot** (aktive Studio-Kamera / aktuelles Framing). Overlay/UI = thin.
+Logik im **Core** (`scene_feedback/`). Bridge liefert **Render-Screenshot** (aktive Studio-Kamera / aktuelles Framing).  
+**UI sitzt im StudioAI-Plugin-Chat** (nicht PoseBrowser, kein separates Haupt-Overlay).
 
 ### Betriebsmodi
 
 
-| Modus        | Trigger                                          | Kosten                    |
-| ------------ | ------------------------------------------------ | ------------------------- |
-| **Manual**   | Chat „wie sieht das aus?“ / Tool `analyze_scene` | 1 Screenshot + JoyCaption |
-| **OnDemand** | Button „Szene analysieren“                       | 1 Shot                    |
-| **Watch**    | Debounced nach Szenenänderung                    | Periodisch, VRAM-intensiv |
+| Modus        | Trigger                                          | Chat-Verhalten                                      | Kosten                    |
+| ------------ | ------------------------------------------------ | --------------------------------------------------- | ------------------------- |
+| **Manual**   | Chat „wie sieht das aus?“ / Tool `analyze_scene` | Feedback-Nachricht; **Input bleibt offen**          | 1 Screenshot + JoyCaption |
+| **OnDemand** | Button „Szene analysieren“ im Plugin-Chat        | wie Manual                                          | 1 Shot                    |
+| **Watch / Live** | Toggle „Live-Feedback“ im Chat                | periodische Feedback-Bubbles; **Input gesperrt** bis Live aus | Periodisch, VRAM-intensiv |
 
 
-Default: Manual + OnDemand; Watch **opt-in**.
+Default: Manual + OnDemand; Live/Watch **opt-in**. Während Live: lesen + Verlauf ok, tippen/senden nein.
 
 ### Datenfluss
 
@@ -507,19 +528,20 @@ sequenceDiagram
   participant Br as Thin_Bridge
   participant Core as StudioAI_Core
   participant JC as JoyCaption
-  participant Chat as Optional_Stheno
-  participant UI as FeedbackOverlay
+  participant LLM as Optional_Stheno
+  participant ChatUI as StudioAi_Plugin_Chat
 
   Studio->>Br: scene changed or user request
-  Note over Br: debounce if Watch
+  Note over Br: debounce if Live Watch
   Br->>Core: PNG from studio camera
   Core->>JC: caption with feedback preset
   JC-->>Core: visual scene description
   opt polish
-    Core->>Chat: short tip from caption
-    Chat-->>Core: 1 to 3 sentences
+    Core->>LLM: short tip from caption
+    LLM-->>Core: 1 to 3 sentences
   end
-  Core->>UI: OnFeedback visual result
+  Core->>ChatUI: append feedback message to chat thread
+  Note over ChatUI: Live on = input locked; Manual = chat continues
 ```
 
 
@@ -550,11 +572,11 @@ Optional Chat-Follow-up: 1–3 Sätze Tipps.
 
 Fussnote: JoyCaption ist beschreibungsstark, instruction-following begrenzt — gezielte „achte nur auf X“-Prompts können übergangen werden. v1: Preset + Instruction; später optional Vision-Profile (Qwen2.5-VL) über `capabilities: [vision]`.
 
-`**SceneFeedbackResult`:** `joyCaptionText`, optional `polishText`, Thumbnail, Trigger.
+`**SceneFeedbackResult`:** `joyCaptionText`, optional `polishText`, **Thumbnail/PNG-Pfad oder Inline-Bild**, Trigger.
 
 **Bridge:** Screenshot der aktiven Studio-Kamera; SSE nur als Trigger. Keine Metadata-als-Inhalt-Pipeline.
 
-**UI:** Overlay mit Caption (+ optional Tip); Hinweis „pausiert während Index…“.
+**UI:** Plugin-Chat-Bubbles mit **Bild + Caption** (+ optional Tip); Live-Toggle + Input-Lock; Hinweis „pausiert während Index…“.
 
 ### Guardrails
 
@@ -571,7 +593,7 @@ Fussnote: JoyCaption ist beschreibungsstark, instruction-following begrenzt — 
 - Offline-Status klar in UI (Search / Chat / Watch getrennt)
 - Ollama-Backend-Vergleich (Messung)
 - OpenAPI vervollständigen
-- Chat-Panel in PoseBrowser + Orchestrator Web-UI für Ops
+- Chat-Panel im StudioAI-Plugin + optional Orchestrator Web-UI für Ops
 - Watch-Tuning: Debounce/Intervall aus User-Config
 
 ---
@@ -586,7 +608,7 @@ Fussnote: JoyCaption ist beschreibungsstark, instruction-following begrenzt — 
 | 3     | + Bridge + JoyCaption + FTS-CLI/Batch | + Qwen Merge                       |
 | 4     | + Scene-Feedback                      | optional Polish                    |
 | 5a    | + thin Plugin + Host/Search-Hook      | unverändert                        |
-| 5b    | + PoseBrowser UI/Agent                | unverändert                        |
+| 5b    | + PB Index/Search; Plugin Chat/Feedback | unverändert                      |
 
 
 ---

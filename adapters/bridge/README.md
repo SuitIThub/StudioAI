@@ -3,6 +3,18 @@
 # Core talks to the existing **StudioPoseBridge** BepInEx plugin over HTTP.
 # Business logic (posecode, JoyCaption, merge, FTS) stays in Core.
 
+## Port discovery
+
+**Why ranges:** After a hard StudioNeoV2 (or process) kill, Windows can leave a ghost LISTEN on the old port until reboot. Binding walks a range so the next start still gets a free port; the peer discovers once and locks.
+
+| Role | Range | Server | Client |
+|------|-------|--------|--------|
+| StudioPoseBridge | 7100–7199 | Bridge binds first free, keeps it | Core `BridgeClient` discovers once → locks |
+| StudioAI Core | 7200–7299 | Core binds first free, keeps it | StudioAi.Plugin discovers once → locks |
+
+Closed ports: cheap TCP skip. First matching `/health` → lock for the process (no re-scan).
+`bridge.url` / `Core.BaseUrl` = preferred start only.
+
 ## What Core uses today
 
 | Call | Bridge endpoint |

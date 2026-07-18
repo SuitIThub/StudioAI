@@ -238,6 +238,14 @@ class PoseIndexStore:
         row = self._conn.execute("SELECT COUNT(*) AS c FROM poses").fetchone()
         return int(row["c"])
 
+    def clear_all(self) -> int:
+        """Delete every pose row and FTS entries. Returns previous count."""
+        before = self.count()
+        self._conn.execute("DELETE FROM poses_fts")
+        self._conn.execute("DELETE FROM poses")
+        self._conn.commit()
+        return before
+
     def get(self, pose_id: str) -> dict[str, Any] | None:
         row = self._conn.execute("SELECT * FROM poses WHERE pose_id = ?", (pose_id,)).fetchone()
         if row is None:

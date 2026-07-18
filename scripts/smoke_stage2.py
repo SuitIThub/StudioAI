@@ -11,7 +11,7 @@ import httpx
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="StudioAI Core Stage-2 smoke")
-    parser.add_argument("--base", default="http://127.0.0.1:7860", help="Core URL")
+    parser.add_argument("--base", default="http://127.0.0.1:7200", help="Core URL")
     parser.add_argument("--persona", default="stheno")
     parser.add_argument("--chat", action="store_true", help="Run multi-turn chat")
     parser.add_argument("--structured", action="store_true", help="Run Qwen+GBNF probe")

@@ -5,10 +5,10 @@
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts\free-bridge-port.ps1
-#   powershell -ExecutionPolicy Bypass -File scripts\free-bridge-port.ps1 -Port 7842
+#   powershell -ExecutionPolicy Bypass -File scripts\free-bridge-port.ps1 -Port 7100
 
 param(
-    [int]$Port = 7842
+    [int]$Port = 7100
 )
 
 function Show-Port {

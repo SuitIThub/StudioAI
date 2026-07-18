@@ -7,7 +7,9 @@ node:
 
 core:
   host: "0.0.0.0"
-  port: 7860
+  # Ghost-port range: binds first free in 7200–7299 (same idea as Bridge 7100–7199).
+  # Plugin walks that range once, then locks. Avoids reboot after hard Studio/Core kills.
+  port: 7200
   default_persona: stheno
   worker_timeout_s: 180
   health_timeout_s: 3
@@ -19,8 +21,9 @@ worker_remote:
   token: ""
 
 bridge:
-  # StudioPoseBridge on the same PC as StudioNeoV2
-  url: "http://127.0.0.1:7842"
+  # StudioPoseBridge on the same PC as StudioNeoV2.
+  # Port is auto-discovered on first contact (scan 7100–7199); url host + preferred start port.
+  url: "http://127.0.0.1:7100"
   token: "64902a9327bc45d891164939876de30d"   # X-Pose-Token from BepInEx config
 
 indexing:

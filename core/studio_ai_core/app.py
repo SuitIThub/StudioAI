@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -99,6 +100,15 @@ class BatchIndexRequest(BaseModel):
     limit: int | None = None
 
 
+class IndexPathsRequest(BaseModel):
+    paths: list[str]
+    character_id: int = 0
+    use_joycaption: bool = True
+    use_merge: bool = True
+    size: int = 512
+    allow_stub: bool = False
+
+
 class SearchRequest(BaseModel):
     query: str
     limit: int = Field(default=20, ge=1, le=100)
@@ -142,6 +152,12 @@ async def lifespan(app: FastAPI):
     )
     store = PoseIndexStore(settings.index_db_path)
     bridge = BridgeClient(settings.bridge_url, token=settings.bridge_token)
+    try:
+        await bridge.ensure_resolved()
+        logger.info("Bridge locked for this process at %s", bridge.base_url)
+    except Exception as exc:
+        logger.warning("Bridge not locked yet (%s) — will retry on first use", exc)
+
     vision_gate = VisionGate()
     joycaption = JoyCaptionClient()
     indexing = IndexingService(
@@ -168,7 +184,7 @@ async def lifespan(app: FastAPI):
         default_polish=settings.feedback_polish,
     )
     logger.info(
-        "Core started (contract=%s, index=%s, worker=%s, bridge=%s)",
+        "Core started (contract=%s, index=%s, worker=%s, bridge_hint=%s)",
         CONTRACT_VERSION,
         INDEX_VERSION,
         settings.worker_url,
@@ -207,11 +223,24 @@ def _bridge_http(exc: BridgeError) -> HTTPException:
     )
 
 
+@app.get("/health/live")
+async def health_live() -> dict[str, Any]:
+    """Fast liveness for port discovery (no worker/bridge probes)."""
+    return {
+        "status": "ok",
+        "contract_version": CONTRACT_VERSION,
+        "node_id": settings.node_id,
+    }
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    wh = await worker.health()
+    # Keep probes short+parallel so Plugin discovery /health never stalls on offline worker.
+    wh, bh = await asyncio.gather(
+        _health_probe(worker.health, 0.8),
+        _health_probe(bridge.health, 0.8),
+    )
     worker_ok = wh is not None
-    bh = await bridge.health()
     bridge_ok = bh is not None
     status = "ok" if worker_ok else "degraded"
     return {
@@ -220,7 +249,7 @@ async def health() -> dict[str, Any]:
         "index_version": INDEX_VERSION,
         "node_id": settings.node_id,
         "worker": {"url": settings.worker_url, "online": worker_ok, "health": wh},
-        "bridge": {"url": settings.bridge_url, "online": bridge_ok, "health": bh},
+        "bridge": {"url": bridge.base_url, "online": bridge_ok, "health": bh},
         "index": {"db": str(settings.index_db_path), "count": store.count()},
         "vision": vision_gate.status(),
         "scene_feedback": {
@@ -231,6 +260,13 @@ async def health() -> dict[str, Any]:
         },
         "detail": None if worker_ok else "Heimserver worker offline – chat/merge unavailable",
     }
+
+
+async def _health_probe(coro_factory, timeout_s: float):
+    try:
+        return await asyncio.wait_for(coro_factory(), timeout=timeout_s)
+    except Exception:
+        return None
 
 
 @app.get("/v1/personas")
@@ -407,6 +443,47 @@ async def index_batch(body: BatchIndexRequest) -> dict[str, Any]:
         use_merge=body.use_merge,
         limit=body.limit,
     )
+
+
+@app.post("/v1/index/paths")
+async def index_paths(body: IndexPathsRequest) -> dict[str, Any]:
+    if not body.paths:
+        raise HTTPException(status_code=400, detail={"code": "empty", "message": "paths required"})
+    logger.info(
+        "POST /v1/index/paths n=%s char=%s joycaption=%s merge=%s allow_stub=%s",
+        len(body.paths),
+        body.character_id,
+        body.use_joycaption,
+        body.use_merge,
+        body.allow_stub,
+    )
+    try:
+        return await indexing.index_paths(
+            body.paths,
+            character_id=body.character_id,
+            use_joycaption=body.use_joycaption,
+            use_merge=body.use_merge,
+            size=body.size,
+            allow_stub=body.allow_stub,
+        )
+    except JoyCaptionUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "joycaption_unavailable", "message": str(exc)},
+        ) from exc
+    except BridgeOfflineError as exc:
+        raise _bridge_http(exc) from exc
+    except BridgeError as exc:
+        raise _bridge_http(exc) from exc
+
+
+@app.post("/v1/index/clear")
+def index_clear() -> dict[str, Any]:
+    """Wipe the entire pose index (SQLite + FTS)."""
+    before = store.count()
+    deleted = store.clear_all()
+    logger.info("POST /v1/index/clear deleted=%s (was %s)", deleted, before)
+    return {"ok": True, "deleted": deleted, "total_in_store": store.count()}
 
 
 @app.post("/v1/search")

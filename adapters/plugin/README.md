@@ -40,8 +40,15 @@ dotnet build targets\HS2\PoseBrowser\HS2Sandbox.PoseBrowser.csproj -c Release
 
 `BepInEx/config/com.suitji.studio_ai.cfg`:
 
-- `Core.BaseUrl` = `http://127.0.0.1:7860`
-- Hotkey `SearchClipboard` default **F8** — searches Core with clipboard text and filters the Pose Browser grid
+- `Core.BaseUrl` = `http://127.0.0.1:7200` (preferred start; walks **7200–7299** once if needed, then locks)
+- Ghost-port ranges: Bridge **7100–7199**, Core **7200–7299** (survive hard Studio kills without reboot)
+- Core must be running — look for log `Core LOCKED on http://127.0.0.1:72xx/`
+- Hotkey `SearchClipboard` default **off** — prefer the Pose Browser **AI:** search bar
+- Options → **StudioAI (debug)**: Probe Core, Clear AI filter
+- **Outbound HTTP** uses `UnityWebRequest` (same as CopyScript) — see [CONNECTIVITY.md](CONNECTIVITY.md)
+- `Logging.Verbose` (default **true**): HTTP discover/probe/search lines as `[dbg] …` in `BepInEx/LogOutput.log`. Errors always log regardless.
+- **Stage 5b:** [STAGE5B.md](STAGE5B.md) — unified Search+AI toggle in PoseBrowser; Chat/Feedback in plugin (**toolbar icon** + **F9**); Index all / Index selection
+- Deploy: also copy `chat-icon.png` next to `StudioAi.Plugin.dll` (or rely on embedded resource)
 
 ## Codegen note
 
