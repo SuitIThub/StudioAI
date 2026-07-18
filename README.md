@@ -11,6 +11,24 @@
 
 **Nicht in 5a:** Chat-Panel, Index-Bar, Agent-Tools-UI → **Stufe 5b**.
 
+## Start (Core / Worker)
+
+**Main-PC (Core + JoyCaption):**
+
+```powershell
+cd H:\Dateien\Dokumente\Repos\StudioAI
+.\scripts\start-core.ps1
+```
+
+**Heimserver (Worker + llama.cpp):**
+
+```bash
+cd /path/to/StudioAI
+./scripts/start-worker.sh
+```
+
+Both scripts: `git pull` → venv/pip → start. Skip steps with `-SkipPull` / `--skip-pull` or `-SkipInstall` / `--skip-install`.
+
 ## Deploy (kurz)
 
 ```powershell

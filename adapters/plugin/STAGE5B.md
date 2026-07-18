@@ -46,7 +46,7 @@
 2. Log: `Index all started` / `POST /v1/index/paths`; status updates; `Index all done`.
 3. Select 2–5 poses → **Index AI** on action bar → chunk index for those paths.
 4. After index: AI search for a filename token from a selected pose → hits include new stubs / offline entries.
-5. Optional: set `Index.UseJoyCaption=true` only if JoyCaption loaded (slow).
+5. Index always runs JoyCaption (`Index.RequireJoyCaption`, default true). First pose is slow while the model loads.
 
 ### D. Chat (Plugin F9)
 1. Press **F9** → Chat window opens; drag works.

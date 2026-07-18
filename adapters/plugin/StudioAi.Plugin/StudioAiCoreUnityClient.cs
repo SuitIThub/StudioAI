@@ -197,6 +197,31 @@ namespace StudioAi.Plugin
             });
         }
 
+        public static IEnumerator LookupIndex(
+            System.Collections.Generic.IList<string> paths,
+            Action<string> onOk,
+            Action<string> onErr)
+        {
+            if (string.IsNullOrEmpty(_lockedBaseUrl))
+            {
+                onErr?.Invoke("Core URL not locked");
+                yield break;
+            }
+
+            var payload = StudioAiSearchJson.BuildLookupRequest(paths);
+            StudioAiLog.Info("POST /v1/index/lookup count=" + (paths != null ? paths.Count : 0));
+            yield return PostJson(_lockedBaseUrl + "/v1/index/lookup", payload, 30, (ok, text, err) =>
+            {
+                if (!ok)
+                {
+                    onErr?.Invoke(err ?? "index/lookup failed");
+                    return;
+                }
+
+                onOk?.Invoke(text ?? "");
+            });
+        }
+
         public static IEnumerator ClearIndex(Action<string> onOk, Action<string> onErr)
         {
             if (string.IsNullOrEmpty(_lockedBaseUrl))

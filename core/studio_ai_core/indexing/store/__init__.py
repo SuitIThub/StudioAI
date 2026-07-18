@@ -252,6 +252,46 @@ class PoseIndexStore:
             return None
         return self._row_to_dict(row)
 
+    @staticmethod
+    def _norm_path(path: str | None) -> str:
+        if not path:
+            return ""
+        return path.replace("\\", "/").rstrip("/").casefold()
+
+    def get_by_path(self, path: str) -> dict[str, Any] | None:
+        """Exact path match, then slash/case-insensitive fallback."""
+        raw = (path or "").strip()
+        if not raw:
+            return None
+        row = self._conn.execute("SELECT * FROM poses WHERE path = ?", (raw,)).fetchone()
+        if row is not None:
+            return self._row_to_dict(row)
+        want = self._norm_path(raw)
+        for candidate in self._conn.execute("SELECT * FROM poses WHERE path IS NOT NULL"):
+            if self._norm_path(candidate["path"]) == want:
+                return self._row_to_dict(candidate)
+        # Stem / pose_id fallback (Stand table.png → Stand_table)
+        stem = Path(raw).stem
+        cleaned = re.sub(r"[^a-zA-Z0-9._\-]+", "_", stem).strip("_")
+        if cleaned:
+            by_id = self.get(cleaned)
+            if by_id is not None:
+                return by_id
+        return None
+
+    def lookup_paths(self, paths: list[str]) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for raw in paths:
+            entry = self.get_by_path(raw)
+            out.append(
+                {
+                    "path": raw,
+                    "found": entry is not None,
+                    "entry": entry,
+                }
+            )
+        return out
+
     def search(self, query: str, *, limit: int = 20) -> list[SearchHit]:
         q = (query or "").strip()
         if not q:

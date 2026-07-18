@@ -137,7 +137,8 @@ def build_merge_prompt(
         f"Captions (pose-focused):\n{cap_lines or '- (none)'}\n"
         f"{majority_line}\n"
         "Produce JSON:\n"
-        "- description: ONE short sentence on body pose (use majority stance if present).\n"
+        "- description: ONE short sentence on body pose. Include majority stance AND "
+        "notable limb/torso cues from posecode tags (never stance alone like 'standing').\n"
         "- tags: at most 8 pose keywords; include majority stance when present; "
         "never include both sides of a conflict.\n"
         "- synonyms: at most 6 short pose search aliases (no meta words like posecode).\n"
@@ -256,11 +257,87 @@ def sanitize_merge_entry(entry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def description_from_posecode(posecode_tags: list[str]) -> str:
+    """Build a searchable one-liner from rule-based tags (floor without JoyCaption)."""
+    tags = [_normalize_tag(str(t)) for t in (posecode_tags or []) if t]
+    tags = list(dict.fromkeys(t for t in tags if t and t not in _NOISE_TAGS))
+    if not tags:
+        return "unspecified pose"
+
+    stance = next((t for t in tags if t in _STANCE_TAGS), None)
+    extras = [t for t in tags if t not in _STANCE_TAGS]
+
+    def _phrase(tag: str) -> str:
+        return tag.replace("_", " ")
+
+    if stance:
+        lead = _phrase(stance)
+        lead = lead[:1].upper() + lead[1:]
+        if extras:
+            return f"{lead} with " + ", ".join(_phrase(t) for t in extras[:6])
+        return f"{lead} pose"
+
+    return "Pose with " + ", ".join(_phrase(t) for t in extras[:6])
+
+
+def _description_is_thin(desc: str, *, min_words: int = 3) -> bool:
+    """True when description is empty, stance-only, or too short for search."""
+    d = (desc or "").strip()
+    if not d:
+        return True
+    words = [w for w in re.split(r"\W+", d.lower()) if w and w not in {"pose", "a", "an", "the"}]
+    if len(words) < min_words:
+        return True
+    compact = d.lower().replace("-", "_").replace(" ", "_").strip(".,;")
+    if compact in _STANCE_TAGS:
+        return True
+    if compact.endswith("_pose") and compact[: -len("_pose")] in _STANCE_TAGS:
+        return True
+    if len(words) <= 2 and any(w in _STANCE_TAGS for w in words):
+        return True
+    return False
+
+
+def enrich_thin_description(
+    entry: dict[str, Any],
+    *,
+    posecode_tags: list[str],
+    posecode_text: str = "",
+) -> dict[str, Any]:
+    """Replace stance-only / empty descriptions with a posecode-derived sentence."""
+    cleaned = dict(entry)
+    desc = str(cleaned.get("description") or "").strip()
+    if not _description_is_thin(desc):
+        return cleaned
+
+    tag_src = list(
+        dict.fromkeys([*(cleaned.get("tags") or []), *(posecode_tags or [])])
+    )
+    rich = description_from_posecode(tag_src)
+    if _description_is_thin(rich) and (posecode_text or "").strip():
+        raw = posecode_text.strip()
+        if raw.lower().startswith("pose with "):
+            parts = [p.strip().replace("_", " ") for p in raw[10:].split(",") if p.strip()]
+            if parts:
+                first = parts[0]
+                if first.replace(" ", "_") in _STANCE_TAGS and len(parts) > 1:
+                    rich = first[:1].upper() + first[1:] + " with " + ", ".join(parts[1:])
+                else:
+                    rich = "Pose with " + ", ".join(parts)
+            else:
+                rich = raw
+        else:
+            rich = raw
+    cleaned["description"] = rich
+    return cleaned
+
+
 def apply_majority_stance(
     entry: dict[str, Any],
     *,
     posecode_tags: list[str],
     captions: dict[str, str],
+    posecode_text: str = "",
 ) -> dict[str, Any]:
     """Replace contested stance tags with majority vote when available."""
     cleaned = sanitize_merge_entry(entry)
@@ -268,12 +345,24 @@ def apply_majority_stance(
     tags = [t for t in cleaned["tags"] if t not in _STANCE_TAGS]
     if majority:
         tags.insert(0, majority)
-        # Keep crouching alongside all_fours if already present / posecode had it
         if majority == "all_fours" and (
             "crouching" in cleaned["tags"] or "crouching" in posecode_tags
         ):
             if "crouching" not in tags:
                 tags.insert(1, "crouching")
+        for t in posecode_tags:
+            nt = _normalize_tag(t)
+            if nt not in _STANCE_TAGS and nt not in tags:
+                tags.append(nt)
+    elif not any(captions.values()):
+        # No captions: trust posecode stance (only evidence available)
+        pc = stance_from_posecode(posecode_tags)
+        if pc and pc not in tags:
+            tags.insert(0, pc)
+        for t in posecode_tags:
+            nt = _normalize_tag(t)
+            if nt not in _STANCE_TAGS and nt not in tags:
+                tags.append(nt)
     cleaned["tags"] = tags[:8]
 
     synonyms = list(cleaned["synonyms"])
@@ -282,45 +371,66 @@ def apply_majority_stance(
     cleaned["synonyms"] = synonyms
 
     desc = cleaned["description"]
-    if majority and desc:
-        # If description still leads with a conflicting stance word, lightly rewrite
+    if majority and desc and not _description_is_thin(desc):
         other = _STANCE_TAGS - {majority, "supine", "prone"}
         lead = desc.split(",", 1)[0].lower()
         if any(o.replace("_", " ") in lead or o in lead for o in other):
             rest = desc.split(",", 1)[1].strip() if "," in desc else ""
-            cleaned["description"] = (
-                f"{majority.replace('_', ' ')}, {rest}" if rest else majority.replace("_", " ")
-            )
-    elif majority and not desc:
-        cleaned["description"] = majority.replace("_", " ")
-    return cleaned
+            if rest:
+                cleaned["description"] = (
+                    f"{majority.replace('_', ' ').capitalize()}, {rest}"
+                )
+            else:
+                cleaned["description"] = description_from_posecode(cleaned["tags"])
+    else:
+        # Empty / thin / no majority: never store bare "standing"
+        tag_src = cleaned["tags"] if cleaned["tags"] else posecode_tags
+        cleaned["description"] = description_from_posecode(tag_src)
+
+    return enrich_thin_description(
+        cleaned, posecode_tags=posecode_tags, posecode_text=posecode_text
+    )
 
 
 def fallback_index_entry(
     *,
     posecode_tags: list[str],
     captions: dict[str, str],
+    posecode_text: str = "",
 ) -> dict[str, Any]:
-    """Conservative union + majority stance."""
+    """Conservative union + majority stance; rich posecode description as floor."""
     majority = majority_stance(posecode_tags, captions)
-    base_tags = [t for t in posecode_tags if t not in _STANCE_TAGS]
+    has_captions = any(bool(t) for t in (captions or {}).values())
     if majority:
-        base_tags = [majority, *base_tags]
-    elif stance_from_posecode(posecode_tags):
-        # No majority: omit stance entirely (equal-weight rule)
-        pass
+        stance = majority
+    elif not has_captions:
+        # Posecode-only: trust the rule-based stance (no competing votes)
+        stance = stance_from_posecode(posecode_tags)
+    else:
+        stance = None
+
+    base_tags = [
+        t for t in posecode_tags if _normalize_tag(t) not in _STANCE_TAGS
+    ]
+    if stance:
+        tags = list(dict.fromkeys([stance, *base_tags]))
+    else:
+        tags = list(dict.fromkeys(base_tags))
+
     texts = [t for t in captions.values() if t]
     shared = _shared_keywords(texts) if len(texts) >= 2 else []
-    description = (
-        f"{majority.replace('_', ' ')} pose"
-        if majority
-        else ("pose with " + ", ".join(base_tags[:4]) if base_tags else "pose")
-    )
-    tags = list(dict.fromkeys([*base_tags, *shared]))[:8]
+    tags = list(dict.fromkeys([*tags, *shared]))[:8]
+    description = description_from_posecode(tags if tags else posecode_tags)
+
     return apply_majority_stance(
-        {"description": description, "tags": tags, "synonyms": shared[:6]},
+        {
+            "description": description,
+            "tags": tags,
+            "synonyms": ([f"{stance}_pose"] if stance else []) + shared[:6],
+        },
         posecode_tags=posecode_tags,
         captions=captions,
+        posecode_text=posecode_text,
     )
 
 
@@ -453,6 +563,10 @@ async def merge_index_entry(
                 },
                 posecode_tags=posecode_tags,
                 captions=captions,
+                posecode_text=posecode_text,
+            )
+            entry = enrich_thin_description(
+                entry, posecode_tags=posecode_tags, posecode_text=posecode_text
             )
             return {
                 "ok": True,
@@ -466,7 +580,11 @@ async def merge_index_entry(
             last_err = str(exc)
             logger.warning("merge attempt %s failed: %s", attempt + 1, exc)
 
-    entry = fallback_index_entry(posecode_tags=posecode_tags, captions=captions)
+    entry = fallback_index_entry(
+        posecode_tags=posecode_tags,
+        captions=captions,
+        posecode_text=posecode_text,
+    )
     return {
         "ok": False,
         "source": "fallback",

@@ -133,3 +133,28 @@ def test_fallback_uses_majority_not_single_source():
     )
     assert "all_fours" in entry["tags"]
     assert entry["tags"][0] == "all_fours"
+
+
+def test_posecode_only_fallback_is_not_stance_only():
+    entry = fallback_index_entry(
+        posecode_tags=["standing", "left_arm_bent", "right_arm_raised"],
+        captions={},
+    )
+    assert "standing" in entry["tags"]
+    assert "left_arm_bent" in entry["tags"]
+    desc = entry["description"].lower()
+    assert "standing" in desc
+    assert "arm" in desc
+    assert desc != "standing"
+    assert desc != "standing pose"
+
+
+def test_enrich_replaces_bare_standing():
+    from studio_ai_core.indexing.merge import enrich_thin_description
+
+    entry = enrich_thin_description(
+        {"description": "standing", "tags": ["standing"], "synonyms": []},
+        posecode_tags=["standing", "left_arm_bent", "arms_crossed"],
+    )
+    assert "arm" in entry["description"].lower()
+    assert entry["description"].lower() != "standing"

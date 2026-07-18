@@ -82,6 +82,22 @@ namespace StudioAi.Plugin
             return sb.ToString();
         }
 
+        public static string BuildLookupRequest(IList<string> paths)
+        {
+            var sb = new StringBuilder(64 + (paths != null ? paths.Count * 64 : 0));
+            sb.Append("{\"paths\":[");
+            if (paths != null)
+            {
+                for (var i = 0; i < paths.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    sb.Append('"').Append(Escape(paths[i])).Append('"');
+                }
+            }
+            sb.Append("]}");
+            return sb.ToString();
+        }
+
         public static string BuildChatRequest(IList<StudioAiChatMessage> messages, string persona, bool stream)
         {
             var sb = new StringBuilder(256);
@@ -225,7 +241,7 @@ namespace StudioAi.Plugin
             return UnescapeQuoted(json, p, out _);
         }
 
-        private static int? TryReadInt(string json, string key)
+        public static int? TryReadInt(string json, string key)
         {
             var raw = TryReadNumberToken(json, key);
             if (raw == null) return null;

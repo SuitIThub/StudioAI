@@ -109,6 +109,10 @@ class IndexPathsRequest(BaseModel):
     allow_stub: bool = False
 
 
+class IndexLookupRequest(BaseModel):
+    paths: list[str]
+
+
 class SearchRequest(BaseModel):
     query: str
     limit: int = Field(default=20, ge=1, le=100)
@@ -484,6 +488,22 @@ def index_clear() -> dict[str, Any]:
     deleted = store.clear_all()
     logger.info("POST /v1/index/clear deleted=%s (was %s)", deleted, before)
     return {"ok": True, "deleted": deleted, "total_in_store": store.count()}
+
+
+@app.post("/v1/index/lookup")
+def index_lookup(body: IndexLookupRequest) -> dict[str, Any]:
+    """Return stored index rows for the given library paths (PoseBrowser dump)."""
+    items = store.lookup_paths(list(body.paths or []))
+    found = sum(1 for i in items if i.get("found"))
+    logger.info("POST /v1/index/lookup n=%s found=%s", len(items), found)
+    return {
+        "ok": True,
+        "count": len(items),
+        "found": found,
+        "missing": len(items) - found,
+        "items": items,
+        "total_in_store": store.count(),
+    }
 
 
 @app.post("/v1/search")

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Start StudioAI Worker on the home server (llama.cpp model runner).
+#
+# Usage:
+#   ./scripts/start-worker.sh
+#   ./scripts/start-worker.sh --skip-pull
+#   ./scripts/start-worker.sh --skip-install
+#
+# Does: optional git pull → ensure venv → pip install -e . → studio-ai-worker
+
+set -euo pipefail
+
+SKIP_PULL=0
+SKIP_INSTALL=0
+CONFIG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-pull) SKIP_PULL=1; shift ;;
+    --skip-install) SKIP_INSTALL=1; shift ;;
+    --config) CONFIG="${2:-}"; shift 2 ;;
+    -h|--help)
+      echo "Usage: $0 [--skip-pull] [--skip-install] [--config PATH]"
+      exit 0
+      ;;
+    *) echo "Unknown arg: $1" >&2; exit 1 ;;
+  esac
+done
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+step() { printf '\n==> %s\n' "$*"; }
+
+if [[ "$SKIP_PULL" -eq 0 ]]; then
+  step "git pull"
+  if [[ -d .git ]]; then
+    if ! git pull --ff-only; then
+      echo "git pull --ff-only failed (local changes?). Continuing with current tree." >&2
+    fi
+  else
+    echo "Not a git checkout — skip pull."
+  fi
+fi
+
+PY="$ROOT/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  step "create .venv"
+  python3 -m venv .venv
+  PY="$ROOT/.venv/bin/python"
+fi
+
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+  step "pip install -e . (editable Worker + Core packages)"
+  "$PY" -m pip install -q --upgrade pip
+  "$PY" -m pip install -e .
+fi
+
+CONFIG_PATH="${CONFIG:-$ROOT/deploy/config.home-server.yaml}"
+if [[ ! -f "$CONFIG_PATH" ]]; then
+  echo "Worker config not found: $CONFIG_PATH" >&2
+  exit 1
+fi
+
+export STUDIO_AI_CONFIG="$(cd "$(dirname "$CONFIG_PATH")" && pwd)/$(basename "$CONFIG_PATH")"
+export PYTHONPATH="$ROOT/core:$ROOT/adapters/worker${PYTHONPATH:+:$PYTHONPATH}"
+
+step "start Worker"
+echo "Config: $STUDIO_AI_CONFIG"
+echo "Listen: 0.0.0.0:7850 (see deploy/config.home-server.yaml)"
+echo "Stop:   Ctrl+C"
+echo
+
+if [[ -x "$ROOT/.venv/bin/studio-ai-worker" ]]; then
+  exec "$ROOT/.venv/bin/studio-ai-worker"
+else
+  exec "$PY" -m studio_ai_worker
+fi

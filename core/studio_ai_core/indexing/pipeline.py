@@ -139,11 +139,14 @@ class IndexingService:
 
         def _run() -> dict[str, str]:
             if load_model:
+                logger.info("JoyCaption ensure/load quant=%s", self.joycaption_quant)
                 self._ensure_joycaption()
             preset = caption_type or self.caption_preset
             out: dict[str, str] = {}
             for view, path in captures.items():
+                logger.info("JoyCaption caption view=%s path=%s preset=%s", view, path, preset)
                 out[view] = self.joycaption.caption_path(path, caption_type=preset)
+                logger.info("JoyCaption caption done view=%s chars=%s", view, len(out[view]))
             return out
 
         async with self.vision_gate.hold("index"):
@@ -216,12 +219,28 @@ class IndexingService:
         caps = dict(captions or {})
         if use_joycaption:
             missing = {v: p for v, p in captures.items() if v not in caps}
-            if missing:
+            if not captures:
+                logger.warning(
+                    "index_from_capture: use_joycaption=True but no capture images — "
+                    "JoyCaption skipped (posecode-only)"
+                )
+            elif not missing:
+                logger.info("index_from_capture: captions already present for %s", list(caps.keys()))
+            else:
+                logger.info(
+                    "index_from_capture: JoyCaption describing views=%s",
+                    list(missing.keys()),
+                )
                 self.vision_gate.begin_index()
                 try:
                     caps.update(await self.describe_images(missing))
                 finally:
                     self.vision_gate.end_index()
+                logger.info(
+                    "index_from_capture: JoyCaption done views=%s lens=%s",
+                    list(caps.keys()),
+                    {k: len(v) for k, v in caps.items()},
+                )
         return await self._finalize_index(
             pose_id=pose_id
             or pose_id_from_path(capture_result.get("pose_path"))
@@ -258,7 +277,9 @@ class IndexingService:
                     grammars_dir=self.grammars_dir,
                 )
             except WorkerOfflineError:
-                entry = fallback_index_entry(posecode_tags=pc_tags, captions=captions)
+                entry = fallback_index_entry(
+                    posecode_tags=pc_tags, captions=captions, posecode_text=pc_text
+                )
                 merge_meta = {
                     "ok": False,
                     "source": "fallback_offline",
@@ -266,7 +287,9 @@ class IndexingService:
                     "error": "worker_offline",
                 }
         else:
-            entry = fallback_index_entry(posecode_tags=pc_tags, captions=captions)
+            entry = fallback_index_entry(
+                posecode_tags=pc_tags, captions=captions, posecode_text=pc_text
+            )
             merge_meta = {"ok": True, "source": "fallback_skip_merge", "entry": entry}
 
         entry = merge_meta["entry"]
@@ -379,12 +402,22 @@ class IndexingService:
                 abs_path = str(file_path.resolve()) if file_path.exists() else str(Path(raw))
                 pose_id = pose_id_from_path(abs_path) or file_path.stem
 
+                # Live library files need JoyCaption (same as Phase-3 /v1/describe).
+                # Without it, merge falls back to thin posecode text ("standing").
+                live_jc = use_joycaption
+                if not live_jc and not allow_stub:
+                    logger.warning(
+                        "index_paths: use_joycaption=false ignored for live capture "
+                        "(set allow_stub=true to skip JoyCaption)"
+                    )
+                    live_jc = True
+
                 logger.info(
                     "index_paths LIVE capture+describe pose_id=%s path=%s char=%s joycaption=%s",
                     pose_id,
                     abs_path,
                     character_id,
-                    use_joycaption,
+                    live_jc,
                 )
                 try:
                     cap = await self.capture(
@@ -404,8 +437,21 @@ class IndexingService:
                     out = await self.index_from_capture(
                         cap,
                         pose_id=pose_id,
-                        use_joycaption=use_joycaption,
+                        use_joycaption=live_jc,
                         use_merge=use_merge,
+                    )
+                    cap_keys = (
+                        list((out.get("captions") or {}).keys())
+                        if isinstance(out.get("captions"), dict)
+                        else []
+                    )
+                    logger.info(
+                        "index_paths describe done pose_id=%s caption_views=%s merge=%s",
+                        pose_id,
+                        cap_keys,
+                        (out.get("merge") or {}).get("source")
+                        if isinstance(out.get("merge"), dict)
+                        else None,
                     )
                     results.append(
                         {

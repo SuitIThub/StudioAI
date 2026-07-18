@@ -236,6 +236,26 @@ paths:
                   deleted: { type: integer }
                   total_in_store: { type: integer }
 
+  /v1/index/lookup:
+    post:
+      operationId: lookupIndex
+      tags: [core]
+      summary: Lookup index rows by library pose paths
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paths]
+              properties:
+                paths:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Lookup result
+
   /v1/search:
     post:
       operationId: searchPoses

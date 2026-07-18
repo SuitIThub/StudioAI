@@ -19,13 +19,14 @@ namespace StudioAi.Plugin
     {
         public const string PluginGuid = "com.suitji.studio_ai";
         public const string PluginName = "StudioAI";
-        public const string PluginVersion = "0.8.1";
+        public const string PluginVersion = "0.8.4";
 
         public static StudioAiPlugin Instance { get; private set; }
 
         public static bool IsSearchBusy { get; private set; }
         public static bool IsProbeBusy { get; private set; }
         public static bool IsIndexBusy { get; private set; }
+        public static bool IsDumpBusy { get; private set; }
         public static string LastStatus { get; private set; } = "";
         public static string LastIndexStatus { get; private set; } = "";
         public static string LastCoreUrl { get; private set; } = "";
@@ -62,11 +63,12 @@ namespace StudioAi.Plugin
                 "Verbose",
                 true,
                 "Write HTTP discover/probe/search detail to BepInEx LogOutput.log ([dbg] lines).");
+            // Key renamed from UseJoyCaption: BepInEx keeps old false forever once written.
             _indexUseJoycaption = Config.Bind(
                 "Index",
-                "UseJoyCaption",
+                "RequireJoyCaption",
                 true,
-                "Run JoyCaption during index (required for real semantic captions). Needs VRAM; first call is slow.");
+                "Must stay true for searchable captions (Phase-3 describe path). First load is slow / needs VRAM.");
             _indexUseMerge = Config.Bind(
                 "Index",
                 "UseMerge",
@@ -235,6 +237,20 @@ namespace StudioAi.Plugin
             return "";
         }
 
+        /// <summary>Fetch Core index rows for paths and write them to the BepInEx log.</summary>
+        public static string TryDumpIndexEntries(IList<string> absolutePaths)
+        {
+            if (Instance == null)
+                return "StudioAI Instance is null";
+            if (absolutePaths == null || absolutePaths.Count == 0)
+                return "No poses selected";
+            var list = absolutePaths.Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
+            if (list.Count == 0)
+                return "No poses selected";
+            Instance.StartCoroutine(Instance.DumpIndexEntriesCoroutine(list));
+            return "";
+        }
+
         public static bool TryClearAiFilterStatic()
         {
             if (Instance != null)
@@ -303,37 +319,41 @@ namespace StudioAi.Plugin
         private IEnumerator ProbeCoroutine()
         {
             IsProbeBusy = true;
-            LastStatus = "Probing Core (UnityWebRequest)…";
+            LastStatus = "Checking Core…";
             StudioAiCoreUnityClient.Invalidate();
 
-            string discoverErr = null;
-            yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
-            if (!string.IsNullOrEmpty(discoverErr))
+            try
             {
-                LastStatus = "FAIL: " + discoverErr;
-                StudioAiLog.Error(LastStatus);
-                IsProbeBusy = false;
-                yield break;
+                string discoverErr = null;
+                yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
+                if (!string.IsNullOrEmpty(discoverErr))
+                {
+                    StudioAiLog.Error("Probe failed: " + discoverErr);
+                    LastStatus = "Core not reachable";
+                    yield break;
+                }
+
+                LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
+                string contractErr = null;
+                string contractVer = null;
+                yield return StudioAiCoreUnityClient.GetLiveContract(
+                    ver => contractVer = ver,
+                    err => contractErr = err);
+
+                if (!string.IsNullOrEmpty(contractErr))
+                {
+                    StudioAiLog.Error("Probe contract failed: " + contractErr);
+                    LastStatus = "Core not reachable";
+                    yield break;
+                }
+
+                StudioAiLog.Info("OK: " + LastCoreUrl + " contract=" + contractVer);
+                LastStatus = "Core connected";
             }
-
-            LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
-            string contractErr = null;
-            string contractVer = null;
-            yield return StudioAiCoreUnityClient.GetLiveContract(
-                ver => contractVer = ver,
-                err => contractErr = err);
-
-            if (!string.IsNullOrEmpty(contractErr))
+            finally
             {
-                LastStatus = "FAIL: " + contractErr;
-                StudioAiLog.Error(LastStatus);
                 IsProbeBusy = false;
-                yield break;
             }
-
-            LastStatus = "OK: " + LastCoreUrl + " contract=" + contractVer;
-            StudioAiLog.Info(LastStatus);
-            IsProbeBusy = false;
         }
 
         private void RunClipboardSearch()
@@ -366,203 +386,275 @@ namespace StudioAi.Plugin
             LastHitCount = 0;
             LastStatus = "Searching…";
 
-            string discoverErr = null;
-            yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
-            if (!string.IsNullOrEmpty(discoverErr))
+            try
             {
-                LastStatus = "Core discover failed: " + discoverErr;
-                StudioAiLog.Error(LastStatus);
-                IsSearchBusy = false;
-                yield break;
-            }
+                string discoverErr = null;
+                yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
+                if (!string.IsNullOrEmpty(discoverErr))
+                {
+                    StudioAiLog.Error("Core discover failed: " + discoverErr);
+                    LastStatus = "Search failed";
+                    yield break;
+                }
 
-            LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
+                LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
 
-            string contractErr = null;
-            yield return StudioAiCoreUnityClient.GetLiveContract(_ => { }, err => contractErr = err);
-            if (!string.IsNullOrEmpty(contractErr))
-            {
-                LastStatus = "Core contract check failed: " + contractErr;
-                StudioAiLog.Error(LastStatus);
-                IsSearchBusy = false;
-                yield break;
-            }
+                string contractErr = null;
+                yield return StudioAiCoreUnityClient.GetLiveContract(_ => { }, err => contractErr = err);
+                if (!string.IsNullOrEmpty(contractErr))
+                {
+                    StudioAiLog.Error("Core contract check failed: " + contractErr);
+                    LastStatus = "Search failed";
+                    yield break;
+                }
 
-            SearchResponse result = null;
-            string searchErr = null;
-            yield return StudioAiCoreUnityClient.Search(
-                query,
-                _searchLimit.Value,
-                r => result = r,
-                err => searchErr = err);
+                SearchResponse result = null;
+                string searchErr = null;
+                yield return StudioAiCoreUnityClient.Search(
+                    query,
+                    _searchLimit.Value,
+                    r => result = r,
+                    err => searchErr = err);
 
-            if (!string.IsNullOrEmpty(searchErr))
-            {
-                LastStatus = "AI search failed: " + searchErr;
-                StudioAiLog.Error(LastStatus);
-                IsSearchBusy = false;
-                yield break;
-            }
+                if (!string.IsNullOrEmpty(searchErr))
+                {
+                    StudioAiLog.Error("AI search failed: " + searchErr);
+                    LastStatus = "Search failed";
+                    yield break;
+                }
 
-            var hits = result != null && result.Hits != null ? result.Hits : new List<SearchHitDto>();
-            LastHitCount = hits.Count;
-            var paths = hits
-                .Select(h => h.Path)
-                .Where(p => !string.IsNullOrEmpty(p))
-                .Cast<string>()
-                .ToList();
-            if (paths.Count == 0)
-            {
-                paths = hits
-                    .Select(h => h.PoseId)
+                var hits = result != null && result.Hits != null ? result.Hits : new List<SearchHitDto>();
+                LastHitCount = hits.Count;
+                var paths = hits
+                    .Select(h => h.Path)
                     .Where(p => !string.IsNullOrEmpty(p))
                     .Cast<string>()
                     .ToList();
-            }
+                if (paths.Count == 0)
+                {
+                    paths = hits
+                        .Select(h => h.PoseId)
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .Cast<string>()
+                        .ToList();
+                }
 
-            bool pushed = TryPushAiSearchToPoseBrowser(paths);
-            LastStatus = hits.Count + " hits, " + paths.Count + " paths · PoseBrowser=" +
-                         (pushed ? "filtered" : "unavailable");
-            if (!pushed)
-                StudioAiLog.Warn("AI search: PoseBrowser filter push unavailable");
-            StudioAiLog.Info("AI search '" + query + "' → " + LastStatus + " @ " + LastCoreUrl);
-            IsSearchBusy = false;
+                bool pushed = TryPushAiSearchToPoseBrowser(paths);
+                StudioAiLog.Info(
+                    "AI search '" + query + "' → hits=" + hits.Count +
+                    " paths=" + paths.Count + " PoseBrowser=" + (pushed ? "filtered" : "unavailable") +
+                    " @ " + LastCoreUrl);
+                if (!pushed)
+                    StudioAiLog.Warn("AI search: PoseBrowser filter push unavailable");
+                LastStatus = hits.Count == 0 ? "No matches" : hits.Count + " matches";
+            }
+            finally
+            {
+                IsSearchBusy = false;
+            }
         }
 
         private IEnumerator IndexPathsCoroutine(List<string> paths, string label)
         {
             IsIndexBusy = true;
             LastIndexStatus = "Indexing " + label + " (" + paths.Count + ") LIVE…";
-            LastStatus = LastIndexStatus;
+            LastStatus = "Indexing…";
             StudioAiLog.Info(LastIndexStatus + " (apply pose → Core capture → JoyCaption → merge)");
 
-            string discoverErr = null;
-            yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
-            if (!string.IsNullOrEmpty(discoverErr))
+            try
             {
-                LastIndexStatus = "Index failed: " + discoverErr;
-                LastStatus = LastIndexStatus;
-                StudioAiLog.Error(LastIndexStatus);
-                IsIndexBusy = false;
-                yield break;
-            }
-
-            LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
-
-            // One pose at a time: apply in Studio, then full Core pipeline
-            var indexed = 0;
-            var errors = 0;
-            var summaries = new List<string>();
-            for (var i = 0; i < paths.Count; i++)
-            {
-                var path = paths[i];
-                LastIndexStatus = "Indexing " + label + " " + (i + 1) + "/" + paths.Count + ": " + Path.GetFileName(path);
-                LastStatus = LastIndexStatus;
-                StudioAiLog.Info(LastIndexStatus);
-
-                bool applied = TryApplyPose(path);
-                StudioAiLog.Info("Apply before index: " + path + " → " + applied);
-                // Let Studio settle FK / mesh before Bridge screenshots
-                yield return new WaitForSecondsRealtime(0.5f);
-
-                string body = null;
-                string err = null;
-                yield return StudioAiCoreUnityClient.IndexPaths(
-                    new List<string> { path },
-                    _indexUseJoycaption.Value,
-                    _indexUseMerge.Value,
-                    _indexCharacterId.Value,
-                    t => body = t,
-                    e => err = e);
-
-                if (!string.IsNullOrEmpty(err))
+                string discoverErr = null;
+                yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
+                if (!string.IsNullOrEmpty(discoverErr))
                 {
-                    errors++;
-                    StudioAiLog.Error("Index failed for " + path + ": " + err);
-                    summaries.Add(Path.GetFileName(path) + " FAIL " + TruncateForLog(err, 120));
-                    continue;
+                    LastIndexStatus = "Index failed: " + discoverErr;
+                    LastStatus = "Index failed";
+                    StudioAiLog.Error(LastIndexStatus);
+                    yield break;
                 }
 
-                var summary = StudioAiSearchJson.SummarizeIndexResponse(body ?? "");
-                summaries.Add(summary);
-                StudioAiLog.Info("Index result: " + summary + " raw=" + TruncateForLog(body, 300));
+                LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
 
-                var mark = body != null ? body.IndexOf("\"indexed\"", StringComparison.Ordinal) : -1;
-                if (mark >= 0)
+                // One pose at a time: apply in Studio, then full Core pipeline
+                var indexed = 0;
+                var errors = 0;
+                var summaries = new List<string>();
+                for (var i = 0; i < paths.Count; i++)
                 {
-                    var n = 0;
-                    for (var p = mark + 9; p < body!.Length; p++)
+                    var path = paths[i];
+                    LastIndexStatus = "Indexing " + label + " " + (i + 1) + "/" + paths.Count + ": " + Path.GetFileName(path);
+                    LastStatus = "Indexing " + (i + 1) + "/" + paths.Count + "…";
+                    StudioAiLog.Info(LastIndexStatus);
+
+                    bool applied = TryApplyPose(path);
+                    StudioAiLog.Info("Apply before index: " + path + " → " + applied);
+                    // Let Studio settle FK / mesh before Bridge screenshots
+                    yield return new WaitForSecondsRealtime(0.5f);
+
+                    // Live index = Phase-3 describe: capture → JoyCaption → merge.
+                    // Never send false (old UseJoyCaption=false in cfg produced posecode-only stubs).
+                    var useJc = _indexUseJoycaption.Value;
+                    if (!useJc)
                     {
-                        if (body[p] >= '0' && body[p] <= '9')
-                            n = n * 10 + (body[p] - '0');
-                        else if (n > 0 || body[p] == ',')
-                            break;
+                        StudioAiLog.Warn(
+                            "Index.RequireJoyCaption=false in cfg — forcing true (posecode-only is not usable)");
+                        useJc = true;
                     }
-                    indexed += n > 0 ? n : 1;
-                }
-                else
-                    indexed++;
-            }
 
-            LastIndexStatus = "Index " + label + " done: indexed≈" + indexed +
-                              ", errors=" + errors + " @ " + LastCoreUrl +
-                              " · " + string.Join(" | ", summaries);
-            LastStatus = LastIndexStatus;
-            StudioAiLog.Info(LastIndexStatus);
-            IsIndexBusy = false;
+                    string body = null;
+                    string err = null;
+                    yield return StudioAiCoreUnityClient.IndexPaths(
+                        new List<string> { path },
+                        useJc,
+                        _indexUseMerge.Value,
+                        _indexCharacterId.Value,
+                        t => body = t,
+                        e => err = e);
+
+                    if (!string.IsNullOrEmpty(err))
+                    {
+                        errors++;
+                        StudioAiLog.Error("Index failed for " + path + ": " + err);
+                        summaries.Add(Path.GetFileName(path) + " FAIL " + TruncateForLog(err, 120));
+                        continue;
+                    }
+
+                    var summary = StudioAiSearchJson.SummarizeIndexResponse(body ?? "");
+                    summaries.Add(summary);
+                    StudioAiLog.Info("Index result: " + summary + " raw=" + TruncateForLog(body, 300));
+
+                    var mark = body != null ? body.IndexOf("\"indexed\"", StringComparison.Ordinal) : -1;
+                    if (mark >= 0)
+                    {
+                        var n = 0;
+                        for (var p = mark + 9; p < body!.Length; p++)
+                        {
+                            if (body[p] >= '0' && body[p] <= '9')
+                                n = n * 10 + (body[p] - '0');
+                            else if (n > 0 || body[p] == ',')
+                                break;
+                        }
+                        indexed += n > 0 ? n : 1;
+                    }
+                    else
+                        indexed++;
+                }
+
+                LastIndexStatus = "Index " + label + " done: indexed≈" + indexed +
+                                  ", errors=" + errors + " @ " + LastCoreUrl +
+                                  " · " + string.Join(" | ", summaries);
+                LastStatus = errors > 0
+                    ? "Index finished with errors"
+                    : "Index finished (" + indexed + ")";
+                StudioAiLog.Info(LastIndexStatus);
+            }
+            finally
+            {
+                IsIndexBusy = false;
+            }
         }
 
         private IEnumerator ClearIndexCoroutine()
         {
             IsIndexBusy = true;
             LastIndexStatus = "Clearing pose index…";
-            LastStatus = LastIndexStatus;
+            LastStatus = "Clearing index…";
             StudioAiLog.Info(LastIndexStatus);
 
-            string discoverErr = null;
-            yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
-            if (!string.IsNullOrEmpty(discoverErr))
+            try
             {
-                LastIndexStatus = "Clear failed: " + discoverErr;
-                LastStatus = LastIndexStatus;
-                StudioAiLog.Error(LastIndexStatus);
-                IsIndexBusy = false;
-                yield break;
-            }
-
-            LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
-            string body = null;
-            string err = null;
-            yield return StudioAiCoreUnityClient.ClearIndex(t => body = t, e => err = e);
-            if (!string.IsNullOrEmpty(err))
-            {
-                LastIndexStatus = "Clear failed: " + err;
-                LastStatus = LastIndexStatus;
-                StudioAiLog.Error(LastIndexStatus);
-                IsIndexBusy = false;
-                yield break;
-            }
-
-            var deleted = StudioAiSearchJson.TryReadJsonString(body, "deleted");
-            // deleted is numeric — Summarize-style
-            var summary = body ?? "";
-            var n = 0;
-            var mark = summary.IndexOf("\"deleted\"", StringComparison.Ordinal);
-            if (mark >= 0)
-            {
-                for (var p = mark + 9; p < summary.Length; p++)
+                string discoverErr = null;
+                yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
+                if (!string.IsNullOrEmpty(discoverErr))
                 {
-                    if (summary[p] >= '0' && summary[p] <= '9')
-                        n = n * 10 + (summary[p] - '0');
-                    else if (n > 0 || summary[p] == ',')
-                        break;
+                    LastIndexStatus = "Clear failed: " + discoverErr;
+                    LastStatus = "Clear failed";
+                    StudioAiLog.Error(LastIndexStatus);
+                    yield break;
                 }
-            }
 
-            LastIndexStatus = "Index cleared: deleted=" + n + " @ " + LastCoreUrl;
-            LastStatus = LastIndexStatus;
-            StudioAiLog.Info(LastIndexStatus + " raw=" + TruncateForLog(body, 200));
-            IsIndexBusy = false;
+                LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
+                string body = null;
+                string err = null;
+                yield return StudioAiCoreUnityClient.ClearIndex(t => body = t, e => err = e);
+                if (!string.IsNullOrEmpty(err))
+                {
+                    LastIndexStatus = "Clear failed: " + err;
+                    LastStatus = "Clear failed";
+                    StudioAiLog.Error(LastIndexStatus);
+                    yield break;
+                }
+
+                var deleted = StudioAiSearchJson.TryReadJsonString(body, "deleted");
+                // deleted is numeric — Summarize-style
+                var summary = body ?? "";
+                var n = 0;
+                var mark = summary.IndexOf("\"deleted\"", StringComparison.Ordinal);
+                if (mark >= 0)
+                {
+                    for (var p = mark + 9; p < summary.Length; p++)
+                    {
+                        if (summary[p] >= '0' && summary[p] <= '9')
+                            n = n * 10 + (summary[p] - '0');
+                        else if (n > 0 || summary[p] == ',')
+                            break;
+                    }
+                }
+
+                LastIndexStatus = "Index cleared: deleted=" + n + " @ " + LastCoreUrl;
+                LastStatus = "Index cleared (" + n + ")";
+                StudioAiLog.Info(LastIndexStatus + " raw=" + TruncateForLog(body, 200));
+            }
+            finally
+            {
+                IsIndexBusy = false;
+            }
+        }
+
+        private IEnumerator DumpIndexEntriesCoroutine(List<string> paths)
+        {
+            IsDumpBusy = true;
+            LastStatus = "Writing index to log…";
+            StudioAiLog.Info("Dump index entries for " + paths.Count + " selected pose(s)");
+
+            try
+            {
+                string discoverErr = null;
+                yield return StudioAiCoreUnityClient.EnsureResolved(_coreUrl.Value, err => discoverErr = err);
+                if (!string.IsNullOrEmpty(discoverErr))
+                {
+                    LastStatus = "Could not reach StudioAI";
+                    StudioAiLog.Error("Dump index failed: " + discoverErr);
+                    yield break;
+                }
+
+                LastCoreUrl = StudioAiCoreUnityClient.LockedBaseUrl;
+                string body = null;
+                string err = null;
+                yield return StudioAiCoreUnityClient.LookupIndex(paths, t => body = t, e => err = e);
+                if (!string.IsNullOrEmpty(err))
+                {
+                    LastStatus = "Could not load index";
+                    StudioAiLog.Error("Dump index failed: " + err);
+                    yield break;
+                }
+
+                // Full payload goes to the log (for debugging captions / merge quality).
+                StudioAiLog.Info("=== Index dump (" + paths.Count + " paths) @ " + LastCoreUrl + " ===");
+                StudioAiLog.Info(body ?? "(empty)");
+                StudioAiLog.Info("=== End index dump ===");
+
+                var found = StudioAiSearchJson.TryReadInt(body ?? "", "found") ?? 0;
+                var missing = StudioAiSearchJson.TryReadInt(body ?? "", "missing") ?? 0;
+                LastStatus = missing > 0
+                    ? "Dumped to log: " + found + " found, " + missing + " missing"
+                    : "Dumped to log: " + found + " found";
+                StudioAiLog.Info(LastStatus + " (details above)");
+            }
+            finally
+            {
+                IsDumpBusy = false;
+            }
         }
 
         private static string TruncateForLog(string s, int max)
